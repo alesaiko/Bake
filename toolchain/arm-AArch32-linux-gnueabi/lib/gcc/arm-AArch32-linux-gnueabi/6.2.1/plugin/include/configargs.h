@@ -1,0 +1,7 @@
+/* Generated automatically. */
+static const char configuration_arguments[] = "/home/alesaiko/Stuff/crosstool-ng/.build/src/gcc-6.2.1/configure --build=x86_64-build_pc-linux-gnu --host=x86_64-build_pc-linux-gnu --target=arm-AArch32-linux-gnueabi --prefix=/home/alesaiko/ready-toolchain/arm-AArch32-linux-gnueabi --with-sysroot=/home/alesaiko/ready-toolchain/arm-AArch32-linux-gnueabi/arm-AArch32-linux-gnueabi/sysroot --enable-languages=c --with-cpu=cortex-a15 --with-fpu=neon-vfpv4 --with-float=softfp --with-pkgversion='crosstool-NG a3287ed - breakfast-6.2.1-20161104' --enable-__cxa_atexit --enable-libmudflap --enable-libgomp --enable-libssp --enable-libquadmath --enable-libquadmath-support --enable-libsanitizer --with-gmp=/home/alesaiko/Stuff/crosstool-ng/.build/arm-AArch32-linux-gnueabi/buildtools --with-mpfr=/home/alesaiko/Stuff/crosstool-ng/.build/arm-AArch32-linux-gnueabi/buildtools --with-mpc=/home/alesaiko/Stuff/crosstool-ng/.build/arm-AArch32-linux-gnueabi/buildtools --with-isl=/home/alesaiko/Stuff/crosstool-ng/.build/arm-AArch32-linux-gnueabi/buildtools --enable-lto --enable-threads=posix --enable-target-optspace --enable-plugin --disable-nls --disable-multilib --with-local-prefix=/home/alesaiko/ready-toolchain/arm-AArch32-linux-gnueabi/arm-AArch32-linux-gnueabi/sysroot --enable-long-long";
+static const char thread_model[] = "posix";
+
+static const struct {
+  const char *name, *value;
+} configure_default_options[] = { { "cpu", "cortex-a15" }, { "float", "softfp" }, { "fpu", "neon-vfpv4" }, { "tls", "gnu" } };
