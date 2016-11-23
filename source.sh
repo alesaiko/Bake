@@ -107,6 +107,11 @@ config_loader() {
 		# Load the config if there is one
 		source $BRKFSTCONFIGS/$CUR_CONFIG; hardcoded_config
 		echo "${bldgrn}----- SUCCESS: $CUR_CONFIG is loaded!${txtrst}"; delay
+		# Do not continue if it is default.conf
+		if [ "$CUR_CONFIG" = "default.conf" ]; then
+			echo "${bldred}----- ERROR: default.conf is not ready for building!${txtrst}"
+			echo "${bldred}----- Please, initialize another config!${txtrst}"; delay; exit 0
+		fi
 	else
 		# Create a new config using config_picker
 		echo "${bldylw}----- WARNING: cur_config is empty!${txtrst}"; delay
@@ -115,6 +120,11 @@ config_loader() {
 		CUR_CONFIG="$(cat $BRKFSTCONFIGS/cur_config)"
 		# Load the config if there is one
 		source $BRKFSTCONFIGS/$CUR_CONFIG; hardcoded_config
+		# Do not continue if it is default.conf
+		if [ "$CUR_CONFIG" = "default.conf" ]; then
+			echo "${bldred}----- ERROR: default.conf is not ready for building!${txtrst}"
+			echo "${bldred}----- Please, initialize another config!${txtrst}"; delay; exit 0
+		fi
 	fi
 }
 
