@@ -1,0 +1,7 @@
+/* Generated automatically. */
+static const char configuration_arguments[] = "/home/alesaiko/crosstool-ng/.build/src/gcc-6.2.1/configure --build=x86_64-build_pc-linux-gnu --host=x86_64-build_pc-linux-gnu --target=arm-breakfast-linux-gnueabihf --prefix=/home/alesaiko/ready-toolchain/arm-breakfast-linux-gnueabihf --with-sysroot=/home/alesaiko/ready-toolchain/arm-breakfast-linux-gnueabihf/arm-breakfast-linux-gnueabihf/sysroot --enable-languages=c,c++,objc,obj-c++ --with-cpu=cortex-a15 --with-fpu=neon-vfpv4 --with-float=hard --with-pkgversion='crosstool-NG crosstool-ng-1.22.0-322-gd505b26 - breakfast-6.2.1-30112016' --enable-__cxa_atexit --enable-libmudflap --enable-libgomp --enable-libssp --enable-libquadmath --enable-libquadmath-support --enable-libsanitizer --with-gmp=/home/alesaiko/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/buildtools --with-mpfr=/home/alesaiko/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/buildtools --with-mpc=/home/alesaiko/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/buildtools --with-isl=/home/alesaiko/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/buildtools --enable-lto --enable-threads=posix --enable-target-optspace --enable-plugin --disable-multilib --with-local-prefix=/home/alesaiko/ready-toolchain/arm-breakfast-linux-gnueabihf/arm-breakfast-linux-gnueabihf/sysroot --enable-long-long";
+static const char thread_model[] = "posix";
+
+static const struct {
+  const char *name, *value;
+} configure_default_options[] = { { "cpu", "cortex-a15" }, { "float", "hard" }, { "fpu", "neon-vfpv4" }, { "tls", "gnu" } };
