@@ -62,7 +62,7 @@ hardcoded_config() {
 
 # External configuration support
 config_picker() {
-	# Check for the configuration directory
+	# Check the configuration directory
 	if [ -e $BRKFSTCONFIGS/default.conf ]; then
 		echo "${bldmgt}----- List of available configs: ${txtrst}"; delay
 
@@ -78,7 +78,7 @@ config_picker() {
 			# Initialize the config if there is one
 			echo "${selected_config}.conf" > $BRKFSTCONFIGS/cur_config
 
-			# Additional check for stability
+			# Compare configurations' names
 			if [ "$(cat $BRKFSTCONFIGS/cur_config)" = "${selected_config}.conf" ]; then
 				echo "${bldgrn}----- SUCCESS: ${selected_config}.conf is picked!${txtrst}"; delay
 				# Go back to the root directory
@@ -113,7 +113,7 @@ config_loader() {
 			echo "${bldred}----- Please, initialize another config!${txtrst}"; delay; exit 0
 		fi
 	else
-		# Create a new config using config_picker
+		# Create a new config using config_picker()
 		echo "${bldylw}----- WARNING: cur_config is empty!${txtrst}"; delay
 		echo "${bldylw}----- Starting config_picker...${txtrst}"; delay
 		config_picker
@@ -140,25 +140,25 @@ check()
 {
 	echo "${bldcya}----- Checking the source...${txtrst}"; delay
 
-	# Check, if the linux tree is present
+	# Check the Breakfast tree presence
 	if [ ! -e $BRKFSTCONFIGS ]; then
 		echo "${bldred}----- ERROR: No Breakfast configs have been found!${txtrst}"; delay
 		echo "${bldred}----- Please, ensure that you have installed breakfast correctly!${txtrst}"; delay; exit 0
 	fi
 
-	# Check, if the linux tree is present
+	# Check the Linux tree presence
 	if [ ! -e $KERNSOURCE/arch ]; then
 		echo "${bldred}----- ERROR: No Linux source has been found!${txtrst}"; delay
 		echo "${bldred}----- Please, download the source and try again!${txtrst}"; delay; exit 0
 	fi
 
-	# Check, if the toolchain is present
+	# Check the Toolchain presence
 	if [ ! -f ${CROSS_COMPILE}gcc ]; then
 		echo "${bldred}----- ERROR: Cannot find GCC!${txtrst}"; delay; exit 0
 		echo "${bldred}----- Please, download the GCC and try again!${txtrst}"; delay; exit 0
 	fi
 
-	# Check, if the flashable structure is present
+	# Check the flashable structure presence
 	if [ ! -f $KERNFLASHABLE/META-INF/com/google/android/update-binary ]; then
 		echo "${bldylw}----- WARNING: No output structure found!${txtrst}"; delay
 		echo "${bldred}----- Please, establish the output structure!${txtrst}"; delay
@@ -301,19 +301,23 @@ crt_flashable()
 
 	# Use VERSION as a name if it is defined
 	if [ $VERSION ]; then
-		zip -r ${VERSION}-$(date +"%d%m%Y").zip .
+		zip -r ${VERSION}-$(date +"%Y%m%d").zip .
 	else
 		# If no, then simply use KERNNAME with the current date
-		zip -r ${KERNNAME}-$(date +"%d%m%Y").zip .
+		zip -r ${KERNNAME}-$(date +"%Y%m%d").zip .
+	fi
+
+	# Check the SOURCE dependency in output directory
+	if [ ! -e $OUTPUT/$SOURCE/ ]; then
+		mkdir -p $OUTPUT/$SOURCE/
 	fi
 
 	# Check the tree and print the result
 	if [ -e $KERNFLASHABLE/${KERNNAME}*.zip ]; then
-		if [ -e $OUTPUT/${KERNNAME}*.zip ]; then
-			rm -rf $OUTPUT/archived/*-$(date +"%d%m%Y").zip
-			mv $OUTPUT/${KERNNAME}*.zip $OUTPUT/archived/
+		if [ -e $OUTPUT/$SOURCE/${KERNNAME}*.zip ]; then
+			mv -f $OUTPUT/$SOURCE/${KERNNAME}*.zip $OUTPUT/archived/
 		fi
-		mv $KERNFLASHABLE/${KERNNAME}*.zip $OUTPUT/
+		mv $KERNFLASHABLE/${KERNNAME}*.zip $OUTPUT/$SOURCE/
 		echo "${bldgrn}----- SUCCESS: Flashable archive was successfully created!${txtrst}"; delay
 	else
 		echo "${bldred}----- ERROR: Failed to create an archive!${txtrst}"; delay; exit 0
@@ -345,7 +349,7 @@ crt_kernel() {
 		clean
 
 		# Check the tree and print the result
-		if [ -e $OUTPUT/${KERNNAME}*.zip ]; then
+		if [ -e $OUTPUT/$SOURCE/${KERNNAME}*.zip ]; then
 			echo "${bldmgt}----- SUCCESS: Kernel was successfully built!${txtrst}"; delay
 		else
 			echo "${bldred}----- ERROR: Could not find the kernel!${txtrst}"; delay; exit 0
