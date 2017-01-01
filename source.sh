@@ -297,7 +297,7 @@ crt_flashable()
 	cd $KERNFLASHABLE
 
 	# Remove all the prebuilt kernels
-	rm -rf ${KERNNAME}*.zip
+	rm -rf *.zip
 
 	# Use VERSION as a name if it is defined
 	if [ $VERSION ]; then
@@ -311,11 +311,14 @@ crt_flashable()
 	if [ ! -e $OUTPUT/$SOURCE/ ]; then
 		mkdir -p $OUTPUT/$SOURCE/
 	fi
+	if [ ! -e $OUTPUT/archived/$SOURCE/ ]; then
+		mkdir -p $OUTPUT/archived/$SOURCE/
+	fi
 
 	# Check the tree and print the result
 	if [ -e $KERNFLASHABLE/${KERNNAME}*.zip ]; then
 		if [ -e $OUTPUT/$SOURCE/${KERNNAME}*.zip ]; then
-			mv -f $OUTPUT/$SOURCE/${KERNNAME}*.zip $OUTPUT/archived/
+			mv -f $OUTPUT/$SOURCE/${KERNNAME}*.zip $OUTPUT/archived/$SOURCE
 		fi
 		mv $KERNFLASHABLE/${KERNNAME}*.zip $OUTPUT/$SOURCE/
 		echo "${bldgrn}----- SUCCESS: Flashable archive was successfully created!${txtrst}"; delay
