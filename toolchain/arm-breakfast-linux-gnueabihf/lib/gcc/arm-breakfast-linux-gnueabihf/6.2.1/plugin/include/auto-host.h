@@ -539,6 +539,13 @@
 #endif
 
 
+/* Define if your Mac OS X assembler supports the -mmacos-version-min option.
+   */
+#ifndef USED_FOR_TARGET
+/* #undef HAVE_AS_MMACOSX_VERSION_MIN_OPTION */
+#endif
+
+
 /* Define if the assembler understands -mnan=. */
 #ifndef USED_FOR_TARGET
 /* #undef HAVE_AS_NAN */
@@ -1906,6 +1913,18 @@
 /* Define if int64_t uses long as underlying type. */
 #ifndef USED_FOR_TARGET
 #define INT64_T_IS_LONG 1
+#endif
+
+
+/* Define to 1 if ld64 supports '-export_dynamic'. */
+#ifndef USED_FOR_TARGET
+/* #undef LD64_HAS_EXPORT_DYNAMIC */
+#endif
+
+
+/* Define to ld64 version. */
+#ifndef USED_FOR_TARGET
+/* #undef LD64_VERSION */
 #endif
 
 

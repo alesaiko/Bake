@@ -31,7 +31,7 @@
 #define _GLIBCXX_CXX_CONFIG_H 1
 
 // The current version of the C++ library in compressed ISO date format.
-#define __GLIBCXX__ 20161114
+#define __GLIBCXX__ 20161213
 
 // Macros for various attributes.
 //   _GLIBCXX_PURE
@@ -431,9 +431,8 @@ namespace std
 #endif
 
 // Assert.
-#if !defined(_GLIBCXX_ASSERTIONS) && !defined(_GLIBCXX_PARALLEL)
-# define __glibcxx_assert(_Condition)
-#else
+#if defined(_GLIBCXX_ASSERTIONS) \
+  || defined(_GLIBCXX_PARALLEL) || defined(_GLIBCXX_PARALLEL_ASSERTIONS)
 namespace std
 {
   // Avoid the use of assert, because we're trying to keep the <cassert>
@@ -447,13 +446,19 @@ namespace std
     __builtin_abort();
   }
 }
-#define __glibcxx_assert(_Condition)				   	 \
+#define __glibcxx_assert_impl(_Condition)				 \
   do 									 \
   {							      		 \
     if (! (_Condition))                                                  \
       std::__replacement_assert(__FILE__, __LINE__, __PRETTY_FUNCTION__, \
 				#_Condition);				 \
   } while (false)
+#endif
+
+#if defined(_GLIBCXX_ASSERTIONS)
+# define __glibcxx_assert(_Condition) __glibcxx_assert_impl(_Condition)
+#else
+# define __glibcxx_assert(_Condition)
 #endif
 
 // Macros for race detectors.
@@ -1536,8 +1541,8 @@ namespace std
 /* Define if _SC_NPROC_ONLN is available in <unistd.h>. */
 /* #undef _GLIBCXX_USE_SC_NPROC_ONLN */
 
-/* Define if sendfile is available in <sys/stat.h>. */
-/* #undef _GLIBCXX_USE_SENDFILE */
+/* Define if sendfile is available in <sys/sendfile.h>. */
+#define _GLIBCXX_USE_SENDFILE 1
 
 /* Define if struct stat has timespec members. */
 #define _GLIBCXX_USE_ST_MTIM 1
@@ -1564,9 +1569,14 @@ namespace std
 /* Define to 1 if mutex_timedlock is available. */
 #define _GTHREAD_USE_MUTEX_TIMEDLOCK 1
 
-/* Define if all C++11 overloads are available in <math.h>.  */
+/* Define if all C++11 floating point overloads are available in <math.h>.  */
 #if __cplusplus >= 201103L
-/* #undef __CORRECT_ISO_CPP11_MATH_H_PROTO */
+/* #undef __CORRECT_ISO_CPP11_MATH_H_PROTO_FP */
+#endif
+
+/* Define if all C++11 integral type overloads are available in <math.h>.  */
+#if __cplusplus >= 201103L
+/* #undef __CORRECT_ISO_CPP11_MATH_H_PROTO_INT */
 #endif
 
 #if defined (_GLIBCXX_HAVE__ACOSF) && ! defined (_GLIBCXX_HAVE_ACOSF)

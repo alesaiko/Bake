@@ -17,7 +17,7 @@ old_library='libbfd.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -L/home/alesaiko/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/build/build-binutils-for-target/bfd/../libiberty/pic -liberty -L/home/alesaiko/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/build/build-binutils-for-target/zlib -lz -ldl'
+dependency_libs=' -L/home/alesaiko/Stuff/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/build/build-binutils-for-target/bfd/../libiberty/pic -liberty -L/home/alesaiko/Stuff/crosstool-ng/.build/arm-breakfast-linux-gnueabihf/build/build-binutils-for-target/zlib -lz -ldl'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''

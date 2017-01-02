@@ -1,5 +1,5 @@
 /* Generated automatically by the program 'build/genpreds'
-   from the machine description file '/home/alesaiko/crosstool-ng/.build/src/gcc-6.2.1/gcc/config/arm/arm.md'.  */
+   from the machine description file '/home/alesaiko/Stuff/crosstool-ng/.build/src/gcc-6.2.1/gcc/config/arm/arm.md'.  */
 
 #ifndef GCC_TM_PREDS_H
 #define GCC_TM_PREDS_H
@@ -61,7 +61,6 @@ extern int offsettable_memory_operand (rtx, machine_mode);
 extern int call_memory_operand (rtx, machine_mode);
 extern int arm_reload_memory_operand (rtx, machine_mode);
 extern int vfp_compare_operand (rtx, machine_mode);
-extern int arm_float_compare_operand (rtx, machine_mode);
 extern int index_operand (rtx, machine_mode);
 extern int shiftable_operator (rtx, machine_mode);
 extern int shiftable_operator_strict_it (rtx, machine_mode);

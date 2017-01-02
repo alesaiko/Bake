@@ -71,7 +71,7 @@ do_ambiguous() {
 while test $# -gt 0; do
   case "$1" in
   --v | --ve | --ver | --vers | --versi | --versio | --version)
-    echo "sotruss (crosstool-NG crosstool-ng-1.22.0-322-gd505b26 - breakfast-6.2.1-30112016) 2.24"
+    echo "sotruss (crosstool-NG crosstool-ng-1.22.0-323-gcfbf1d5 - breakfast-6.2.1-20170101) 2.24"
     printf $"Copyright (C) %s Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
