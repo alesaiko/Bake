@@ -12,16 +12,16 @@ reset
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-# Breakfast version
-bake_version=2.0
+# BF version
+bf_ver=2.1
 
-# Global delay define
+# Define the global delay
 delay()
 {
 	sleep 0.5
 }
 
-# Colors
+# Export the colors
 export txtbld=$(tput bold)
 export txtrst=$(tput sgr0)
 export red=$(tput setaf 1)
@@ -37,20 +37,18 @@ export bldblu=${txtbld}$(tput setaf 4)
 export bldmgt=${txtbld}$(tput setaf 5)
 export bldcya=${txtbld}$(tput setaf 6)
 
-# Root directory define
+# Define the root directory
 export ROOTDIR=`readlink -f .`
 
-# Breakfast configuration
-export BRKFSTCONFIGS="$ROOTDIR/configs"
+# BF structure defines
+export BFCONFIGS="$ROOTDIR/configs"
 export OUTPUT="$ROOTDIR/output"
 
-# Board configuration
+# Define NR_CPUS value based on cpus count
 export NR_CPUS=`grep 'processor' /proc/cpuinfo | wc -l`
-export MAXFREQ=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq)
 
-# Hardcoded configuration
-hardcoded_config() {
-	# Device configuration
+# Load defines from the BF config
+load_defines() {
 	export KERNSOURCE="$ROOTDIR/src/kernel/$SOURCE"
 	export KERNFLASHABLE="$ROOTDIR/src/flashable/$FLASHABLE"
 	export CROSS_COMPILE="$ROOTDIR/toolchain/$TOOLCHAIN/bin/${TOOLCHAIN}-"
@@ -60,70 +58,95 @@ hardcoded_config() {
 	fi
 }
 
-# External configuration support
+# Pick the BF config
 config_picker() {
-	# Check the configuration directory
-	if [ -e $BRKFSTCONFIGS/default.conf ]; then
-		echo "${bldmgt}----- List of available configs: ${txtrst}"; delay
+	if [ -e $BFCONFIGS/default.conf ]; then
+		echo "${bldmgt}----- Available BF configs: ${txtrst}"; delay
 
-		# Trap into configs directory and print all the configs there
-		cd $BRKFSTCONFIGS
+		# Display all the available BF configs
+		cd $BFCONFIGS
 		find *.conf
+		cd $ROOTDIR
 
-		# Wait until the config will be chosen from userspace
-		read -p "${bldmgt}----- Choose the config from the list (without .conf): ${txtrst}" selected_config
-
-		# Check for the selected config
-		if [ -e $BRKFSTCONFIGS/${selected_config}.conf ]; then
-			# Initialize the config if there is one
-			echo "${selected_config}.conf" > $BRKFSTCONFIGS/cur_config
-
-			# Compare configurations' names
-			if [ "$(cat $BRKFSTCONFIGS/cur_config)" = "${selected_config}.conf" ]; then
-				echo "${bldgrn}----- SUCCESS: ${selected_config}.conf is picked!${txtrst}"; delay
-				# Go back to the root directory
-				cd $ROOTDIR
+		# Display the current BF config
+		echo "${bldmgt}----- Current BF config: ${txtrst}"; delay
+		if [ -e $BFCONFIGS/cur_config ]; then
+			if [ "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
+				cat $BFCONFIGS/cur_config
 			else
-				# Stop the process if this gone wrong
-				echo "${bldred}----- ERROR: ${selected_config}.conf is not picked!${txtrst}"; delay
+				echo "${bldylw}----- There is no BF config selected!${txtrst}"; delay
 			fi
 		else
-			# Stop the process if there is no such config
-			echo "${bldred}----- ERROR: ${selected_config}.conf is not found!${txtrst}"
+			echo "${bldylw}----- There is no BF config loaded!${txtrst}"; delay
+		fi
+
+		# Read the selected config from terminal
+		read -p "${bldmgt}----- Select the BF config: ${txtrst}" selected_config
+		if [ ! $selected_config ]; then
+			echo "${bldylw}----- No config has been selected!${txtrst}"; delay; exit 0
+		elif [ "$selected_config" = "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ] ||
+		     [ "${selected_config}.conf" = "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
+			echo "${bldylw}----- Selected config is the same as an active one!${txtrst}"; delay
+			echo "${bldylw}----- No changes in cur_config. Continuing...${txtrst}"; delay
+		fi
+
+		# Work with selected BF config
+		if [ -e $BFCONFIGS/$selected_config ] || [ -e $BFCONFIGS/${selected_config}.conf ]; then
+			# Load the BF config
+			if [ -e $BFCONFIGS/$selected_config ]; then
+				export config_name="$selected_config"
+				echo "$selected_config" > $BFCONFIGS/cur_config; delay
+			else
+				export config_name="${selected_config}.conf"
+				echo "${selected_config}.conf" > $BFCONFIGS/cur_config
+			fi
+
+			if [ "$(cat $BFCONFIGS/cur_config)" = "$config_name" ]; then
+				echo "${bldgrn}----- SUCCESS: $config_name was picked!${txtrst}"; delay
+			else
+				echo "${bldred}----- ERROR: $config_name was not picked!${txtrst}"; delay
+			fi
+		else
+			export config_name="$selected_config"
+
+			echo "${bldred}----- ERROR: $config_name was not found!${txtrst}"; delay
 			echo "${bldred}----- Please, check out its name and try again!${txtrst}"; delay; exit 0
 		fi
 	else
-		# Stop the process if there is no configuration directory
-		echo "${bldred}----- ERROR: Configuration directory is not found!${txtrst}"; delay
+		echo "${bldred}----- ERROR: Configuration directory was not found!${txtrst}"; delay
 		echo "${bldred}----- Please, ensure that you have installed Breakfast correctly!${txtrst}"; delay; exit 0
 	fi
 }
 
-# External configuration loader
+# Load the BF config
 config_loader() {
-	# Check the config by checking its size
-	if [ -s $BRKFSTCONFIGS/cur_config ]; then
-		CUR_CONFIG="$(cat $BRKFSTCONFIGS/cur_config)"
-		# Load the config if there is one
-		source $BRKFSTCONFIGS/$CUR_CONFIG; hardcoded_config
-		echo "${bldgrn}----- SUCCESS: $CUR_CONFIG is loaded!${txtrst}"; delay
-		# Do not continue if it is default.conf
-		if [ "$CUR_CONFIG" = "default.conf" ]; then
-			echo "${bldred}----- ERROR: default.conf is not ready for building!${txtrst}"
-			echo "${bldred}----- Please, initialize another config!${txtrst}"; delay; exit 0
+	if [ "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
+		# Initialize BF config
+		CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
+		source $BFCONFIGS/$CUR_CONFIG; load_defines
+
+		if [ $SOURCE ] && [ $KERNNAME ] && [ $VCOUNT ] && [ $ARCH ] && [ $SUBARCH ] &&
+		   [ $ORIGCONFIG ] && [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
+			echo "${bldgrn}----- SUCCESS: $CUR_CONFIG was loaded!${txtrst}"; delay
+		else
+			echo "${bldred}----- ERROR: $CUR_CONFIG was not loaded!${txtrst}"; delay; exit 0
 		fi
 	else
-		# Create a new config using config_picker()
 		echo "${bldylw}----- WARNING: cur_config is empty!${txtrst}"; delay
 		echo "${bldylw}----- Starting config_picker...${txtrst}"; delay
+
+		# Pick the BF config
 		config_picker
-		CUR_CONFIG="$(cat $BRKFSTCONFIGS/cur_config)"
-		# Load the config if there is one
-		source $BRKFSTCONFIGS/$CUR_CONFIG; hardcoded_config
-		# Do not continue if it is default.conf
-		if [ "$CUR_CONFIG" = "default.conf" ]; then
-			echo "${bldred}----- ERROR: default.conf is not ready for building!${txtrst}"
-			echo "${bldred}----- Please, initialize another config!${txtrst}"; delay; exit 0
+
+		# Initialize BF config
+		CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
+		source $BFCONFIGS/$CUR_CONFIG; load_defines
+
+		if [ $SOURCE ] && [ $KERNNAME ] && [ $VCOUNT ] && [ $ARCH ] && [ $SUBARCH ] &&
+		   [ $ORIGCONFIG ] && [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
+			echo "${bldgrn}----- SUCCESS: $CUR_CONFIG was loaded!${txtrst}"; delay
+		else
+			echo "${bldred}----- ERROR: $CUR_CONFIG was not loaded!${txtrst}"; delay; exit 0
 		fi
 	fi
 }
@@ -135,33 +158,29 @@ hard_clean()
 	rm -rf $KERNFLASHABLE/core/$IMGTYPE
 }
 
-# Simple check for stuff
+# Check for the stuff
 check()
 {
-	echo "${bldcya}----- Checking the source...${txtrst}"; delay
+	echo "${bldcya}----- Checking BF...${txtrst}"; delay
 
-	# Check the Breakfast tree presence
-	if [ ! -e $BRKFSTCONFIGS ]; then
-		echo "${bldred}----- ERROR: No Breakfast configs have been found!${txtrst}"; delay
-		echo "${bldred}----- Please, ensure that you have installed breakfast correctly!${txtrst}"; delay; exit 0
+	if [ ! -e $BFCONFIGS ]; then
+		echo "${bldred}----- ERROR: Breakfast configs were not found!${txtrst}"; delay
+		echo "${bldred}----- Please, ensure that you have installed Breakfast correctly!${txtrst}"; delay; exit 0
 	fi
 
-	# Check the Linux tree presence
 	if [ ! -e $KERNSOURCE/arch ]; then
-		echo "${bldred}----- ERROR: No Linux source has been found!${txtrst}"; delay
-		echo "${bldred}----- Please, download the source and try again!${txtrst}"; delay; exit 0
+		echo "${bldred}----- ERROR: Linux source was not found!${txtrst}"; delay
+		echo "${bldred}----- Please, download the source!${txtrst}"; delay; exit 0
 	fi
 
-	# Check the Toolchain presence
 	if [ ! -f ${CROSS_COMPILE}gcc ]; then
-		echo "${bldred}----- ERROR: Cannot find GCC!${txtrst}"; delay; exit 0
-		echo "${bldred}----- Please, download the GCC and try again!${txtrst}"; delay; exit 0
+		echo "${bldred}----- ERROR: GCC was not found!${txtrst}"; delay; exit 0
+		echo "${bldred}----- Please, download the GCC!${txtrst}"; delay; exit 0
 	fi
 
-	# Check the flashable structure presence
 	if [ ! -f $KERNFLASHABLE/META-INF/com/google/android/update-binary ]; then
 		echo "${bldylw}----- WARNING: No output structure found!${txtrst}"; delay
-		echo "${bldred}----- Please, establish the output structure!${txtrst}"; delay
+		echo "${bldylw}----- Please, establish the output structure!${txtrst}"; delay
 	fi
 
 	echo "${bldgrn}----- SUCCESS: Source was checked!${txtrst}"; delay
@@ -170,7 +189,6 @@ check()
 # Clean leftover junk
 clean_junk()
 {
-	# Find and remove files via parallel
 	find . -type f \( -iname \*.rej \
 		       -o -iname \*.orig \
 		       -o -iname \*.bkp \
@@ -183,25 +201,27 @@ clean_junk()
 				| parallel rm -fv {}
 }
 
-# Main cleaning function
+# Clean the BF tree
 clean()
 {
 	echo "${bldcya}----- Cleaning up source...${txtrst}"; delay
 
-	# Trap into kernel source
+	# Clean leftover junk
 	cd $KERNSOURCE
 
-	# Remove junk files
 	clean_junk
 
-	# Clean the tree via base cleaning functions
-	make mrproper
-	make clean
+	# Clean the tree via main cleaning functions
+	if [ -e $KERNSOURCE/Makefile ]; then
+		make mrproper
+		make clean
+	fi
 
-	# Clean leftover files
+	cd $ROOTDIR
+
+	# Clean leftover junk
 	rm -rf $KERNSOURCE/arch/$ARCH/boot/*.dtb
 	rm -rf $KERNSOURCE/arch/$ARCH/boot/*.cmd
-	# 'mach-msm' directory is present on old ARM kernels
 	if [ "$ARCH" = "arm" ]; then
 		rm -rf $KERNSOURCE/arch/arm/mach-msm/smd_rpc_sym.c
 	fi
@@ -209,38 +229,31 @@ clean()
 	rm -rf $KERNSOURCE/include/generated
 	rm -rf $KERNSOURCE/arch/*/include/generated
 	rm -rf $KERNIMG
+
 	# Remove the built kernel
 	rm -rf $KERNFLASHABLE/core/$IMGTYPE
 
-	# Go back to root
-	cd $ROOTDIR
-
 	# Check the source after cleaning and print the result
 	if [ ! -e $KERNSOURCE/scripts/basic/fixdep ]; then
-		echo "${bldgrn}----- SUCCESS: Successfully cleaned!${txtrst}"; delay
+		echo "${bldgrn}----- SUCCESS: Tree was successfully cleaned!${txtrst}"; delay
 	else
-		echo "${bldred}----- ERROR: Could not cleanup the tree!${txtrst}"; delay; exit 0
+		echo "${bldred}----- ERROR: Tree was not cleaned!${txtrst}"; delay; exit 0
 	fi
 }
 
 # Complete cleaning of the tree
 full_clean()
 {
-	# Trap into kernel source
+	# Clean leftover junk
 	cd $KERNSOURCE
-
-	# Remove junk files
 	clean_junk
+	cd $ROOTDIR
 
-	# Intelligent cleaning verification requirement
+	# Use clean() only if required
 	if [ -e $KERNSOURCE/scripts/basic/fixdep ]; then
-		# 'clean' function takes a while, so this check is needed
 		clean
 	else
-		# Go back to root
-		cd $ROOTDIR
-
-		echo "${bldgrn}----- SUCCESS: Source is already cleaned!${txtrst}"; delay
+		echo "${bldgrn}----- SUCCESS: Tree is already cleaned!${txtrst}"; delay
 	fi
 }
 
@@ -249,42 +262,36 @@ crt_config()
 {
 	echo "${bldcya}----- Checking for defconfig...${txtrst}"; delay
 
-	# Trap into kernel source
+	# Trap into the kernel source
 	cd $KERNSOURCE
 
 	# Create the config only if there is no one
 	if [ ! -f $KERNSOURCE/arch/$ARCH/configs/$CONFIG ]; then
 		echo "${bldcya}----- Creating defconfig...${txtrst}"; delay
 
-		# Break up, if there is no original defconfig
 		if [ ! -e $KERNSOURCE/arch/$ARCH/configs/$ORIGCONFIG ]; then
-			echo "${bldred}----- ERROR: Could not find an original defconfig!${txtrst}"; delay; exit 0
+			echo "${bldred}----- ERROR: $ORIGCONFIG was not found!${txtrst}"; delay; exit 0
 		fi
 
-		# Created defconfig should not replace the original defconfig
 		if [ "$CONFIG" = "$ORIGCONFIG" ]; then
-			echo "${bldred}----- ERROR: Configs names are the same!${txtrst}"; delay; exit 0
+			echo "${bldred}----- ERROR: Configurations' names are the same!${txtrst}"; delay; exit 0
 		fi
 
-		# Make an original defconfig and load in to the tree
 		make $ORIGCONFIG
 		mv .config $KERNSOURCE/arch/$ARCH/configs/$CONFIG
 
-		# Clean the tree after this process
 		clean
 
-		# Check the tree and print the result
 		if [ -e $KERNSOURCE/arch/$ARCH/configs/$CONFIG ]; then
 			echo "${bldgrn}----- SUCCESS: Defconfig was successfully created!${txtrst}"; delay
 		else
-			echo "${bldred}----- ERROR: Could not create a defconfig!${txtrst}"; delay; exit 0
+			echo "${bldred}----- ERROR: Defconfig was not created!${txtrst}"; delay; exit 0
 		fi
 	else
-		# There is no sense to do this if we already have a defconfig
 		echo "${bldgrn}----- SUCCESS: Defconfig was found!${txtrst}"; delay
 	fi
 
-	# Go back to root
+	# Go back to the root
 	cd $ROOTDIR
 }
 
@@ -293,17 +300,16 @@ crt_flashable()
 {
 	echo "${bldcya}----- Creating flashable archive...${txtrst}"; delay
 
-	# Trap into flashable structure
+	# Trap into the flashable structure
 	cd $KERNFLASHABLE
 
 	# Remove all the prebuilt kernels
 	rm -rf *.zip
 
-	# Use VERSION as a name if it is defined
+	# Use VERSION as a name if it was defined
 	if [ $VERSION ]; then
 		zip -r ${VERSION}-$(date +"%Y%m%d").zip .
 	else
-		# If no, then simply use KERNNAME with the current date
 		zip -r ${KERNNAME}-$(date +"%Y%m%d").zip .
 	fi
 
@@ -311,19 +317,21 @@ crt_flashable()
 	if [ ! -e $OUTPUT/$SOURCE/ ]; then
 		mkdir -p $OUTPUT/$SOURCE/
 	fi
+
 	if [ ! -e $OUTPUT/archived/$SOURCE/ ]; then
 		mkdir -p $OUTPUT/archived/$SOURCE/
 	fi
 
-	# Check the tree and print the result
 	if [ -e $KERNFLASHABLE/${KERNNAME}*.zip ]; then
 		if [ -e $OUTPUT/$SOURCE/${KERNNAME}*.zip ]; then
 			mv -f $OUTPUT/$SOURCE/${KERNNAME}*.zip $OUTPUT/archived/$SOURCE
 		fi
+
 		mv $KERNFLASHABLE/${KERNNAME}*.zip $OUTPUT/$SOURCE/
+
 		echo "${bldgrn}----- SUCCESS: Flashable archive was successfully created!${txtrst}"; delay
 	else
-		echo "${bldred}----- ERROR: Failed to create an archive!${txtrst}"; delay; exit 0
+		echo "${bldred}----- ERROR: Flashable archive was not created!${txtrst}"; delay; exit 0
 	fi
 
 	# Go back to the root
@@ -334,7 +342,7 @@ crt_flashable()
 crt_kernel() {
 	echo "${bldcya}----- Building -> ${VERSION}${txtrst}"; delay
 
-	# Trap into kernel source
+	# Trap into the kernel source
 	cd $KERNSOURCE
 
 	# Initialize the config and start the building
@@ -343,29 +351,23 @@ crt_kernel() {
 
 	# Check the presence of the compiled kernel image
 	if [ -e $KERNIMG ]; then
-		# Move image to the flashable structure
 		mv $KERNIMG $KERNFLASHABLE/core/
 
-		# Create a flashable archive with the compiled kernel
 		crt_flashable
-		# Clean the tree after this process
 		clean
 
-		# Check the tree and print the result
-		if [ -e $OUTPUT/$SOURCE/${KERNNAME}*.zip ]; then
+		if [ -e $OUTPUT/$SOURCE/*.zip ]; then
 			echo "${bldmgt}----- SUCCESS: Kernel was successfully built!${txtrst}"; delay
 		else
 			echo "${bldred}----- ERROR: Could not find the kernel!${txtrst}"; delay; exit 0
 		fi
 	else
-		# Print error if there is no image
 		echo "${bldred}----- ERROR: Kernel STUCK in build!${txtrst}"; delay; exit 0
 	fi
 }
 
-# Main initialization function
+# Initialize the whole thing
 init() {
-	# Prepare for the building
 	check
 	crt_config
 
@@ -373,6 +375,5 @@ init() {
 	echo "${bldblu}----- Build starts in 2${txtrst}"; sleep 1
 	echo "${bldblu}----- Build starts in 1${txtrst}"; sleep 1
 
-	# Then start it
 	crt_kernel
 }
