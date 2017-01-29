@@ -356,7 +356,7 @@ crt_kernel() {
 		crt_flashable
 		clean
 
-		if [ -e $OUTPUT/$SOURCE/*.zip ]; then
+		if [ -e $OUTPUT/$SOURCE/$KERNNAME*.zip ]; then
 			echo "${bldmgt}----- SUCCESS: Kernel was successfully built!${txtrst}"; delay
 		else
 			echo "${bldred}----- ERROR: Could not find the kernel!${txtrst}"; delay; exit 0
