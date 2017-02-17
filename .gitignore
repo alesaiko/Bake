@@ -1,0 +1,24 @@
+# Breakfast gitignore policy
+
+# Do not ignore ourself
+!.gitignore
+
+# Ignore cur_config
+configs/cur_config
+
+# Ignore .../src tree
+src/kernel/flashable*
+src/kernel/breakfast*
+
+# Ignore output files
+output/breakfast*
+output/archived/breakfast*
+
+# Ignore dummy files
+*.dummyfile
+
+# Generic rules
+patches
+*.orig
+*.rej
+*~

@@ -13,9 +13,9 @@ reset
 # GNU General Public License for more details.
 
 # BF version
-bf_ver=2.1
+bf_ver=2.2
 
-# Define the global delay
+# Define a global delay
 delay()
 {
 	sleep 0.5
@@ -55,6 +55,8 @@ load_defines() {
 	export KERNIMG="$KERNSOURCE/arch/$ARCH/boot/$IMGTYPE"
 	if [ -e $KERNSOURCE/arch/$ARCH/configs/$CONFIG ]; then
 		export VERSION=$(cat $KERNSOURCE/arch/$ARCH/configs/$CONFIG | grep "CONFIG_LOCALVERSION=" | dd bs=1 skip=22 count=$VCOUNT 2>/dev/null)
+	else
+		export VERSION="$KERNNAME"
 	fi
 }
 
@@ -90,7 +92,7 @@ config_picker() {
 			echo "${bldylw}----- No changes in cur_config. Continuing...${txtrst}"; delay
 		fi
 
-		# Work with selected BF config
+		# Pick the selected BF config
 		if [ -e $BFCONFIGS/$selected_config ] || [ -e $BFCONFIGS/${selected_config}.conf ]; then
 			# Load the BF config
 			if [ -e $BFCONFIGS/$selected_config ]; then
@@ -120,34 +122,24 @@ config_picker() {
 
 # Load the BF config
 config_loader() {
-	if [ "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
-		# Initialize BF config
-		CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
-		source $BFCONFIGS/$CUR_CONFIG; load_defines
-
-		if [ $SOURCE ] && [ $KERNNAME ] && [ $VCOUNT ] && [ $ARCH ] && [ $SUBARCH ] &&
-		   [ $ORIGCONFIG ] && [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
-			echo "${bldgrn}----- SUCCESS: $CUR_CONFIG was loaded!${txtrst}"; delay
-		else
-			echo "${bldred}----- ERROR: $CUR_CONFIG was not loaded!${txtrst}"; delay; exit 0
-		fi
-	else
+	# Pick config if there is no one
+	if [ ! "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
 		echo "${bldylw}----- WARNING: cur_config is empty!${txtrst}"; delay
 		echo "${bldylw}----- Starting config_picker...${txtrst}"; delay
 
 		# Pick the BF config
 		config_picker
+	fi
 
-		# Initialize BF config
-		CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
-		source $BFCONFIGS/$CUR_CONFIG; load_defines
+	# Initialize BF config
+	CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
+	source $BFCONFIGS/$CUR_CONFIG; load_defines
 
-		if [ $SOURCE ] && [ $KERNNAME ] && [ $VCOUNT ] && [ $ARCH ] && [ $SUBARCH ] &&
-		   [ $ORIGCONFIG ] && [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
-			echo "${bldgrn}----- SUCCESS: $CUR_CONFIG was loaded!${txtrst}"; delay
-		else
-			echo "${bldred}----- ERROR: $CUR_CONFIG was not loaded!${txtrst}"; delay; exit 0
-		fi
+	if [ $SOURCE ] && [ $KERNNAME ] && [ $VCOUNT ] && [ $ARCH ] && [ $SUBARCH ] &&
+	   [ $ORIGCONFIG ] && [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
+		echo "${bldgrn}----- SUCCESS: $CUR_CONFIG was loaded!${txtrst}"; delay
+	else
+		echo "${bldred}----- ERROR: $CUR_CONFIG was not loaded!${txtrst}"; delay; exit 0
 	fi
 }
 
@@ -307,11 +299,7 @@ crt_flashable()
 	rm -rf *.zip
 
 	# Use VERSION as a name if it was defined
-	if [ $VERSION ]; then
-		zip -r ${VERSION}-$(date +"%Y%m%d").zip .
-	else
-		zip -r ${KERNNAME}-$(date +"%Y%m%d").zip .
-	fi
+	zip -r ${VERSION}-$(date +"%Y%m%d").zip .
 
 	# Check the SOURCE dependency in output directory
 	if [ ! -e $OUTPUT/$SOURCE/ ]; then
@@ -322,12 +310,12 @@ crt_flashable()
 		mkdir -p $OUTPUT/archived/$SOURCE/
 	fi
 
-	if [ -e $KERNFLASHABLE/${KERNNAME}*.zip ]; then
-		if [ -e $OUTPUT/$SOURCE/${KERNNAME}*.zip ]; then
-			mv -f $OUTPUT/$SOURCE/${KERNNAME}*.zip $OUTPUT/archived/$SOURCE
+	if [ -e $KERNFLASHABLE/${VERSION}*.zip ]; then
+		if [ -e $OUTPUT/$SOURCE/${VERSION}*.zip ]; then
+			mv -f $OUTPUT/$SOURCE/${VERSION}*.zip $OUTPUT/archived/$SOURCE
 		fi
 
-		mv $KERNFLASHABLE/${KERNNAME}*.zip $OUTPUT/$SOURCE/
+		mv $KERNFLASHABLE/${VERSION}*.zip $OUTPUT/$SOURCE/
 
 		echo "${bldgrn}----- SUCCESS: Flashable archive was successfully created!${txtrst}"; delay
 	else
@@ -356,7 +344,7 @@ crt_kernel() {
 		crt_flashable
 		clean
 
-		if [ -e $OUTPUT/$SOURCE/$KERNNAME*.zip ]; then
+		if [ -e $OUTPUT/$SOURCE/$VERSION*.zip ]; then
 			echo "${bldmgt}----- SUCCESS: Kernel was successfully built!${txtrst}"; delay
 		else
 			echo "${bldred}----- ERROR: Could not find the kernel!${txtrst}"; delay; exit 0
