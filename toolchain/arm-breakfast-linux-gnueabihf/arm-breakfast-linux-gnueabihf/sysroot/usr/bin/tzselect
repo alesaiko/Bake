@@ -1,8 +1,8 @@
 #!/bin/bash
 
-PKGVERSION="(crosstool-NG crosstool-ng-1.22.0-323-gcfbf1d5 - breakfast-6.2.1-20170101) "
-TZVERSION="2.24"
-REPORT_BUGS_TO="<http://www.gnu.org/software/libc/bugs.html>"
+PKGVERSION="(crosstool-NG crosstool-ng-1.22.0-669-gd156d4b - breakfast-6.3.1-20170312) "
+TZVERSION="2.25"
+REPORT_BUGS_TO="<https://github.com/alesaiko>"
 
 # Ask the user about the time zone, and output the resulting TZ value to stdout.
 # Interact with the user via stderr and stdin.

@@ -1,5 +1,5 @@
 #! /bin/bash
-# Copyright (C) 2011-2016 Free Software Foundation, Inc.
+# Copyright (C) 2011-2017 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -47,7 +47,7 @@ do_help() {
   echo
 
   printf $"For bug reporting instructions, please see:\\n%s.\\n" \
-    "<http://www.gnu.org/software/libc/bugs.html>"
+    "<https://github.com/alesaiko>"
   exit 0
 }
 
@@ -71,11 +71,11 @@ do_ambiguous() {
 while test $# -gt 0; do
   case "$1" in
   --v | --ve | --ver | --vers | --versi | --versio | --version)
-    echo "sotruss (crosstool-NG crosstool-ng-1.22.0-323-gcfbf1d5 - breakfast-6.2.1-20170101) 2.24"
+    echo "sotruss (crosstool-NG crosstool-ng-1.22.0-669-gd156d4b - breakfast-6.3.1-20170312) 2.25"
     printf $"Copyright (C) %s Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-" "2016"
+" "2017"
     printf $"Written by %s.\n" "Ulrich Drepper"
     exit 0
     ;;

@@ -19,8 +19,8 @@ import gdb
 import os
 import os.path
 
-pythondir = '/home/alesaiko/ready-toolchain/arm-breakfast-linux-gnueabihf/share/gcc-6.2.1/python'
-libdir = '/home/alesaiko/ready-toolchain/arm-breakfast-linux-gnueabihf/arm-breakfast-linux-gnueabihf/lib'
+pythondir = '/home/alesaiko/crosstool-ng/ready-toolchain/arm-breakfast-linux-gnueabihf/share/gcc-6.3.1/python'
+libdir = '/home/alesaiko/crosstool-ng/ready-toolchain/arm-breakfast-linux-gnueabihf/arm-breakfast-linux-gnueabihf/lib'
 
 # This file might be loaded when there is no current objfile.  This
 # can happen if the user loads it manually.  In this case we don't

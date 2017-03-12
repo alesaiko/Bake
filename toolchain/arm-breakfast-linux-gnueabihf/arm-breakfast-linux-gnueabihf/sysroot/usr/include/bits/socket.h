@@ -1,5 +1,5 @@
 /* System-specific socket constants and types.  Linux version.
-   Copyright (C) 1991-2016 Free Software Foundation, Inc.
+   Copyright (C) 1991-2017 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -83,7 +83,8 @@ typedef __socklen_t socklen_t;
 #define PF_NFC		39	/* NFC sockets.  */
 #define PF_VSOCK	40	/* vSockets.  */
 #define PF_KCM		41	/* Kernel Connection Multiplexor.  */
-#define PF_MAX		42	/* For now..  */
+#define PF_QIPCRTR	42	/* Qualcomm IPC Router.  */
+#define PF_MAX		43	/* For now..  */
 
 /* Address families.  */
 #define AF_UNSPEC	PF_UNSPEC
@@ -131,6 +132,7 @@ typedef __socklen_t socklen_t;
 #define AF_NFC		PF_NFC
 #define AF_VSOCK	PF_VSOCK
 #define AF_KCM		PF_KCM
+#define AF_QIPCRTR	PF_QIPCRTR
 #define AF_MAX		PF_MAX
 
 /* Socket level values.  Others are defined in the appropriate headers.
@@ -271,13 +273,13 @@ struct cmsghdr
 				   with this.  */
     int cmsg_level;		/* Originating protocol.  */
     int cmsg_type;		/* Protocol specific type.  */
-#if (!defined __STRICT_ANSI__ && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L
+#if __glibc_c99_flexarr_available
     __extension__ unsigned char __cmsg_data __flexarr; /* Ancillary data.  */
 #endif
   };
 
 /* Ancillary data object manipulation macros.  */
-#if (!defined __STRICT_ANSI__ && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L
+#if __glibc_c99_flexarr_available
 # define CMSG_DATA(cmsg) ((cmsg)->__cmsg_data)
 #else
 # define CMSG_DATA(cmsg) ((unsigned char *) ((struct cmsghdr *) (cmsg) + 1))
