@@ -13,7 +13,7 @@ reset
 # GNU General Public License for more details.
 
 # BF version
-bf_ver=2.2
+bf_ver=2.2.1
 
 # Define a global delay
 delay()
@@ -53,11 +53,7 @@ load_defines() {
 	export KERNFLASHABLE="$ROOTDIR/src/flashable/$FLASHABLE"
 	export CROSS_COMPILE="$ROOTDIR/toolchain/$TOOLCHAIN/bin/${TOOLCHAIN}-"
 	export KERNIMG="$KERNSOURCE/arch/$ARCH/boot/$IMGTYPE"
-	if [ -e $KERNSOURCE/arch/$ARCH/configs/$CONFIG ]; then
-		export VERSION=$(cat $KERNSOURCE/arch/$ARCH/configs/$CONFIG | grep "CONFIG_LOCALVERSION=" | dd bs=1 skip=22 count=$VCOUNT 2>/dev/null)
-	else
-		export VERSION="$KERNNAME"
-	fi
+	export VERSION="$SOURCE"
 }
 
 # Pick the BF config
@@ -88,12 +84,13 @@ config_picker() {
 			echo "${bldylw}----- No config has been selected!${txtrst}"; delay; exit 0
 		elif [ "$selected_config" = "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ] ||
 		     [ "${selected_config}.conf" = "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
-			echo "${bldylw}----- Selected config is the same as an active one!${txtrst}"; delay
+			echo "${bldylw}----- Selected config is the same as the active one!${txtrst}"; delay
 			echo "${bldylw}----- No changes in cur_config. Continuing...${txtrst}"; delay
 		fi
 
 		# Pick the selected BF config
-		if [ -e $BFCONFIGS/$selected_config ] || [ -e $BFCONFIGS/${selected_config}.conf ]; then
+		if [ -e $BFCONFIGS/$selected_config ] ||
+		   [ -e $BFCONFIGS/${selected_config}.conf ]; then
 			# Load the BF config
 			if [ -e $BFCONFIGS/$selected_config ]; then
 				export config_name="$selected_config"
@@ -135,8 +132,8 @@ config_loader() {
 	CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
 	source $BFCONFIGS/$CUR_CONFIG; load_defines
 
-	if [ $SOURCE ] && [ $KERNNAME ] && [ $VCOUNT ] && [ $ARCH ] && [ $SUBARCH ] &&
-	   [ $ORIGCONFIG ] && [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
+	if [ $SOURCE ] && [ $ARCH ] && [ $SUBARCH ] && [ $ORIGCONFIG ] &&
+	   [ $CONFIG ] && [ $TOOLCHAIN ] && [ $IMGTYPE ] && [ $FLASHABLE ]; then
 		echo "${bldgrn}----- SUCCESS: $CUR_CONFIG was loaded!${txtrst}"; delay
 	else
 		echo "${bldred}----- ERROR: $CUR_CONFIG was not loaded!${txtrst}"; delay; exit 0
@@ -283,7 +280,7 @@ crt_config()
 		echo "${bldgrn}----- SUCCESS: Defconfig was found!${txtrst}"; delay
 	fi
 
-	# Go back to the root
+	# Go back to root
 	cd $ROOTDIR
 }
 
@@ -298,7 +295,7 @@ crt_flashable()
 	# Remove all the prebuilt kernels
 	rm -rf *.zip
 
-	# Use VERSION as a name if it was defined
+	# Use VERSION as a name
 	zip -r ${VERSION}-$(date +"%Y%m%d").zip .
 
 	# Check the SOURCE dependency in output directory
@@ -322,7 +319,7 @@ crt_flashable()
 		echo "${bldred}----- ERROR: Flashable archive was not created!${txtrst}"; delay; exit 0
 	fi
 
-	# Go back to the root
+	# Go back to root
 	cd $KERNSOURCE
 }
 
