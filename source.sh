@@ -144,7 +144,7 @@ config_loader() {
 hard_clean()
 {
 	rm -rf $KERNIMG
-	rm -rf $KERNFLASHABLE/core/$IMGTYPE
+	rm -rf $KERNFLASHABLE/kernel/$IMGTYPE
 }
 
 # Check for the stuff
@@ -220,7 +220,7 @@ clean()
 	rm -rf $KERNIMG
 
 	# Remove the built kernel
-	rm -rf $KERNFLASHABLE/core/$IMGTYPE
+	rm -rf $KERNFLASHABLE/kernel/$IMGTYPE
 
 	# Check the source after cleaning and print the result
 	if [ ! -e $KERNSOURCE/scripts/basic/fixdep ]; then
@@ -336,7 +336,7 @@ crt_kernel() {
 
 	# Check the presence of the compiled kernel image
 	if [ -e $KERNIMG ]; then
-		mv $KERNIMG $KERNFLASHABLE/core/
+		mv $KERNIMG $KERNFLASHABLE/kernel/
 
 		crt_flashable
 		clean
