@@ -68,9 +68,9 @@ config_picker() {
 
 		# Display the current BF config
 		echo "${bldmgt}----- Current BF config: ${txtrst}"; delay
-		if [ -e $BFCONFIGS/cur_config ]; then
-			if [ "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
-				cat $BFCONFIGS/cur_config
+		if [ -e $BFCONFIGS/.cur_config ]; then
+			if [ "$(cat $BFCONFIGS/.cur_config 2>/dev/null)" ]; then
+				cat $BFCONFIGS/.cur_config
 			else
 				echo "${bldylw}----- There is no BF config selected!${txtrst}"; delay
 			fi
@@ -82,9 +82,8 @@ config_picker() {
 		read -p "${bldmgt}----- Select the BF config: ${txtrst}" selected_config
 		if [ ! $selected_config ]; then
 			echo "${bldylw}----- No config has been selected!${txtrst}"; delay; exit 0
-		elif [ "$selected_config" = "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ] ||
-		     [ "${selected_config}.conf" = "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
-			echo "${bldylw}----- Selected config is the same as the active one!${txtrst}"; delay
+		elif [ "$selected_config" = "$(cat $BFCONFIGS/.cur_config 2>/dev/null)" ] ||
+		     [ "${selected_config}.conf" = "$(cat $BFCONFIGS/.cur_config 2>/dev/null)" ]; then
 			echo "${bldylw}----- No changes in cur_config. Continuing...${txtrst}"; delay
 		fi
 
@@ -94,13 +93,13 @@ config_picker() {
 			# Load the BF config
 			if [ -e $BFCONFIGS/$selected_config ]; then
 				export config_name="$selected_config"
-				echo "$selected_config" > $BFCONFIGS/cur_config; delay
+				echo "$selected_config" > $BFCONFIGS/.cur_config; delay
 			else
 				export config_name="${selected_config}.conf"
-				echo "${selected_config}.conf" > $BFCONFIGS/cur_config
+				echo "${selected_config}.conf" > $BFCONFIGS/.cur_config
 			fi
 
-			if [ "$(cat $BFCONFIGS/cur_config)" = "$config_name" ]; then
+			if [ "$(cat $BFCONFIGS/.cur_config)" = "$config_name" ]; then
 				echo "${bldgrn}----- SUCCESS: $config_name was picked!${txtrst}"; delay
 			else
 				echo "${bldred}----- ERROR: $config_name was not picked!${txtrst}"; delay
@@ -120,7 +119,7 @@ config_picker() {
 # Load the BF config
 config_loader() {
 	# Pick config if there is no one
-	if [ ! "$(cat $BFCONFIGS/cur_config 2>/dev/null)" ]; then
+	if [ ! "$(cat $BFCONFIGS/.cur_config 2>/dev/null)" ]; then
 		echo "${bldylw}----- WARNING: cur_config is empty!${txtrst}"; delay
 		echo "${bldylw}----- Starting config_picker...${txtrst}"; delay
 
@@ -129,7 +128,7 @@ config_loader() {
 	fi
 
 	# Initialize BF config
-	CUR_CONFIG="$(cat $BFCONFIGS/cur_config)"
+	CUR_CONFIG="$(cat $BFCONFIGS/.cur_config)"
 	source $BFCONFIGS/$CUR_CONFIG; load_defines
 
 	if [ $SOURCE ] && [ $ARCH ] && [ $SUBARCH ] && [ $ORIGCONFIG ] &&

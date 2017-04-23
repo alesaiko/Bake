@@ -4,7 +4,7 @@
 !.gitignore
 
 # Ignore cur_config
-configs/cur_config
+configs/.cur_config
 
 # Ignore .../src tree
 src/kernel/flashable*
