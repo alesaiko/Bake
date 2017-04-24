@@ -11,53 +11,54 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-# Initialize BF source
-source source.sh
+# Initialize Breakfast source
+if [ -e core/source.sh ]; then
+	source core/source.sh;
+else
+	echo "$(tput bold)$(tput setaf 1)ERROR: SOURCE FILE WAS NOT FOUND!$(tput sgr0)"; exit 0;
+fi
 
-# Start the script
-echo "${bldcya}----- Starting Breakfast v$bf_ver...${txtrst}"; delay
+echo "${bldcya}----- Starting Breakfast v$bf_ver...${txtrst}"; delay;
 
-# Use keys for better interaction
+# Keys support
 while [ 1 ]; do
-	if [ "$1" = "--init" ]; then
-		# Regenerate BF config
-		rm -rf $BRKFSTCONFIGS/cur_config && config_picker
-		exit 1
-	elif [ "$1" = "--new" ]; then
-		# Regenerate kernel defconfig and start the building
-		config_loader
-		rm -rf $KERNSOURCE/arch/$ARCH/configs/$CONFIG && crt_config
-		init
-		exit 1
+	# Initialize Breakfast configuration file
+	if [ "$1" = "--new" ]; then
+		config_picker;
+		exit 1;
+	# Build the kernel with a new defconfig
+	elif [ "$1" = "--fresh" ]; then
+		config_loader;
+		rm -rf $KERNSOURCE/arch/$ARCH/configs/$CONFIG && crt_config;
+		init;
+		exit 1;
+	# Regenerate kernel defconfig
 	elif [ "$1" = "--config" ]; then
-		# Regenerate kernel defconfig
-		config_loader
-		rm -rf $KERNSOURCE/arch/$ARCH/configs/$CONFIG && crt_config
-		exit 1
+		config_loader;
+		rm -rf $KERNSOURCE/arch/$ARCH/configs/$CONFIG && crt_config;
+		exit 1;
+	# Clean up the tree
 	elif [ "$1" = "--clean" ]; then
-		# Clean the tree
-		config_loader
-		full_clean
-		exit 1
+		config_loader;
+		full_clean force;
+		exit 1;
+	# Remove all output archives
 	elif [ "$1" = "--remove" ]; then
-		# Remove all the built kernels
-		rm -rf $OUTPUT/archived/*.zip
-		rm -rf $OUTPUT/*.zip
-		exit 1
+		rm -rf $OUTPUT/archived/*.zip;
+		rm -rf $OUTPUT/*.zip;
+		exit 1;
 	elif [ -z "$1" ]; then
-		# Skip this structure if there is no key
-		break
+		break;
 	else
-		# Print ERROR if the key is undefined
-		echo "${bldred}----- ERROR: Unknown key. Continuing...${txtrst}"; delay
-		break
+		echo "${bldred}----- ERROR: Unknown key. Continuing...${txtrst}"; delay;
+		break;
 	fi
 done
 
 # Initialize the script
-config_loader
-hard_clean && full_clean
-init
+config_loader;
+full_clean;
+init;
 
-# End
-exit 1
+# End of the script
+exit 1;
