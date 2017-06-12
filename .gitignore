@@ -14,6 +14,9 @@ src/kernel/breakfast*
 output/breakfast*
 output/archived/breakfast*
 
+# Ignore kernel releases
+releases/*
+
 # Ignore dummy files
 *.dummyfile
 

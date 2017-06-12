@@ -13,7 +13,7 @@ reset
 # GNU General Public License for more details.
 
 # Breakfast version
-bf_ver=2.3;
+bf_ver=2.3.1;
 
 # Global delay
 delay() {
@@ -45,6 +45,9 @@ export OUTPUT="$ROOTDIR/output";
 
 # Number of host's logic processors
 export NR_CPUS=`grep 'processor' /proc/cpuinfo | wc -l`;
+if [ $NR_CPUS -le "8" ]; then
+	NR_CPUS="8";
+fi
 
 # Update current BF config
 update_cur_config() {
@@ -82,8 +85,8 @@ check() {
 	fi
 
 	if [ ! -f $KERNFLASHABLE/META-INF/com/google/android/update-binary ]; then
-		echo "${bldylw}----- WARNING: No flashable structure found!${txtrst}"; delay;
-		echo "${bldylw}----- Please, establish the flashable structure first!${txtrst}"; delay;
+		echo "${bldred}----- ERROR: No flashable structure found!${txtrst}"; delay;
+		echo "${bldred}----- Please, establish the flashable structure first!${txtrst}"; delay; exit 0;
 	fi
 
 	echo "${bldgrn}----- SUCCESS: Source was checked!${txtrst}"; delay
@@ -107,7 +110,7 @@ config_picker() {
 		# Read config from input
 		read -p "${bldmgt}----- Select the BF config: ${txtrst}" selected_config;
 		if [ ! $selected_config ]; then
-			echo "${bldylw}----- No config was selected!${txtrst}"; delay;
+			echo "${bldylw}----- No config was selected!${txtrst}"; delay; exit 0;
 		fi
 		export config_name="$selected_config";
 
@@ -167,8 +170,8 @@ config_loader() {
 # Remove built images
 hard_clean() {
 	if [ -n $KERNSOURCE ]; then
-		rm -f $KERNIMG >> /dev/null;
-		rm -f $KERNFLASHABLE/kernel/$IMGTYPE >> /dev/null;
+		rm -rf $KERNIMG >> /dev/null \
+		       $KERNFLASHABLE/kernel/$IMGTYPE >> /dev/null;
 	else
 		echo "${bldred}----- ERROR: Linux source was not found!${txtrst}"; delay;
 		echo "${bldred}----- Please, download the source!${txtrst}"; delay; exit 0;
@@ -219,11 +222,12 @@ clean() {
 		if [ "$ARCH" = "arm" ]; then
 			rm -f $KERNSOURCE/arch/arm/mach-msm/smd_rpc_sym.c >> /dev/null;
 		fi
-		rm -rf $KERNSOURCE/arch/$ARCH/boot/*.dtb >> /dev/null;
-		rm -rf $KERNSOURCE/arch/$ARCH/boot/*.cmd >> /dev/null;
-		rm -f $KERNSOURCE/arch/$ARCH/crypto/aesbs-core.S >> /dev/null;
-		rm -rf $KERNSOURCE/include/generated >> /dev/null;
-		rm -rf $KERNSOURCE/arch/*/include/generated >> /dev/null;
+
+		rm -rf $KERNSOURCE/arch/$ARCH/boot/*.dtb >> /dev/null \
+		       $KERNSOURCE/arch/$ARCH/boot/*.cmd >> /dev/null \
+		       $KERNSOURCE/arch/$ARCH/crypto/aesbs-core.S >> /dev/null \
+		       $KERNSOURCE/include/generated >> /dev/null \
+		       $KERNSOURCE/arch/*/include/generated >> /dev/null;
 
 		# Check the source after cleaning
 		if [ ! -e $KERNSOURCE/scripts/basic/fixdep ]; then
