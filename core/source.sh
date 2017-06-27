@@ -197,7 +197,7 @@ clean() {
 		clean_junk
 		hard_clean
 
-		if [ "$ARCH" == "arm" ]; then
+		if [ "$ARCH" == "arm" ] && [ ! $CUR_CONFIG == "flo.conf" ]; then
 			rm -f $KERNSOURCE/arch/arm/mach-msm/smd_rpc_sym.c
 		fi
 
