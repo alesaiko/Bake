@@ -1,7 +1,6 @@
 #!/bin/bash
 
-#
-# Copyright (C) 2017, The Linux Foundation. All rights reserved.
+# Copyright (C) 2017, Alex Saiko <solcmdr@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -11,36 +10,33 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#
 
-if [ -e core/source.sh ]; then
-	source core/source.sh
+# Specify breakfast core script directory
+BFCORE="core/source.sh"
+if [ -z $BFCORE ]; then
+	echo "----- ERROR: Source file was not found!"
+	echo "----- Please, ensure that you have $BFCORE script!"
+	exit 1
 else
-	echo "$(tput bold)$(tput setaf 1)ERROR: SOURCE FILE WAS NOT FOUND!$(tput sgr0)"; exit 1
+	source $BFCORE
 fi
 
-echo "${bldcya}----- Starting Breakfast v$bf_ver...${txtrst}"; delay;
-
-if [ ! "$1" == "--new" ]; then
-	config_loader
-fi
+echo "${bldcya}----- Starting Breakfast v$bf_ver...${txtrst}"; delay
+[ ! "$1" == "--new" ] && config_loader
 
 while [ $1 ]; do
 	if [ "$1" == "--new" ]; then
-		config_picker
-		config_loader
+		config_picker && config_loader
 	elif [ "$1" == "--config" ]; then
 		rm -f $KERNSOURCE/arch/$ARCH/configs/$CONFIG
 		crt_config
 	elif [ "$1" == "--fresh" ]; then
 		rm -f $KERNSOURCE/arch/$ARCH/configs/$CONFIG
-		crt_config
-		init
+		crt_config && init
 	elif [ "$1" == "--clean" ]; then
-		full_clean "force"
+		intelli_clean "force"
 	elif [ "$1" == "--destroy" ]; then
-		rm -rf $OUTPUT/archived/*.zip \
-		       $OUTPUT/*.zip
+		rm -rf $OUTPUT/*
 	else
 		echo "${bldred}----- ERROR: Unknown key. Continuing...${txtrst}"; delay
 		break
@@ -49,7 +45,4 @@ while [ $1 ]; do
 	exit 0
 done
 
-full_clean
-init
-
-exit 0
+intelli_clean && init
