@@ -84,7 +84,7 @@ config_picker() {
 load_defines() {
 	export KERNSOURCE="$ROOTDIR/src/kernel/$SOURCE"
 	export KERNFLASHABLE="$ROOTDIR/src/flashable/$FLASHABLE"
-	export CROSS_COMPILE="$ROOTDIR/toolchain/$TOOLCHAIN/bin/${TOOLCHAIN}-"
+	export CROSS_COMPILE="$ROOTDIR/toolchains/$TOOLCHAIN/bin/${TOOLCHAIN}-"
 	export KERNIMG="$KERNSOURCE/arch/$ARCH/boot/$IMGTYPE"
 	export VERSION="$SOURCE"
 }
