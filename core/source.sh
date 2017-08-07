@@ -200,8 +200,8 @@ crt_flashable() {
 	[ ! -e $OUTPUT/archived/$SOURCE/ ] && mkdir -p $OUTPUT/archived/$SOURCE/
 
 	if [ -e $KERNFLASHABLE/${VERSION}-$DATE.zip ]; then
-		if [ -e $OUTPUT/$SOURCE/${VERSION}-$DATE.zip ]; then
-			mv -f $OUTPUT/$SOURCE/${VERSION}-$DATE.zip $OUTPUT/archived/$SOURCE
+		if [ -e $OUTPUT/$SOURCE/$VERSION*.zip ]; then
+			mv -f $OUTPUT/$SOURCE/$VERSION*.zip $OUTPUT/archived/$SOURCE
 		fi
 
 		mv $KERNFLASHABLE/${VERSION}-$DATE.zip $OUTPUT/$SOURCE/
