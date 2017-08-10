@@ -45,6 +45,7 @@ terminate()
 	[ "$1" == "2" ] && error="$2 was not loaded!"
 	[ "$1" == "3" ] && error="Kernel stuck in build!"
 	[ "$1" == "4" ] && error="Could not create flashable archive!"
+	[ "$1" == "5" ] && error="You should include script via \"source\" command!"
 
 	print "${clr_red}----- ERROR: $error\n\nScript terminated with error $1${clr_reset}"
 	[ $3 ] && sleep $3
@@ -179,7 +180,8 @@ make_kernel()
 
 [ $1 ] || terminate "0"
 
-find_config $1
+[ "$1" == "include" ] && ([ "$0" == "bash" ] || terminate "5" "" "5") ||
+(find_config $1
 init_bake_config $cur_config
 cleanup_kernel_tree
-make_kernel
+make_kernel)
