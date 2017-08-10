@@ -47,6 +47,7 @@ terminate()
 	[ "$1" == "4" ] && error="Could not create flashable archive!"
 
 	print "${clr_red}----- ERROR: $error\n\nScript terminated with error $1${clr_reset}"
+	[ $3 ] && sleep $3
 	exit $1
 }
 
