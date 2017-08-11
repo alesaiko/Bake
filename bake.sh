@@ -146,6 +146,9 @@ make_flashable()
 {
 	print "${clr_cyan}----- Creating flashable archive...${clr_reset}"
 
+	[ -f $kernels_dir/$kernel_name/arch/$ARCH/boot/$kernel_image ] ||
+	terminate "-1" $kernels_dir/$kernel_name/arch/$ARCH/boot/$kernel_image
+
 	cd $flashables_dir
 
 	[ -d $kernel_name ] || mkdir -p $kernel_name/kernel
@@ -166,7 +169,7 @@ make_flashable()
 	mv $flashables_dir/$kernel_name/${kernel_name}-$date.zip $outputs_dir/$kernel_name/
 	[ -f $outputs_dir/$kernel_name/${kernel_name}-$date.zip ] || terminate "4"
 
-	cd $rootdir
+	cd $root_dir
 }
 
 make_kernel()
