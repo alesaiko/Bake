@@ -25,6 +25,7 @@ clr_reset=$(tput sgr0);
 root_dir=$(readlink -f .);
 configs_dir="${root_dir}/configs"
 kernels_dir="${root_dir}/kernels"
+signapk_dir="${root_dir}/signapk"
 flashables_dir="${root_dir}/flashables"
 toolchains_dir="${root_dir}/toolchains"
 outputs_dir="${root_dir}/outputs"
@@ -124,6 +125,23 @@ cleanup_kernel_tree()
 	fi
 }
 
+sign_flashable()
+{
+	[ -f $signapk_dir/signapk.jar ] &&
+	[ -f $signapk_dir/keys/*.pk8 ] &&
+	[ -f $signapk_dir/keys/*.pem ] &&
+	[ -f $flashables_dir/$kernel_name/$1 ] ||
+	return 0
+
+	private_key=$(find $signapk_dir/keys/*.pk8 | head -1);
+	public_key=$(find $signapk_dir/keys/*.pem | head -1);
+
+	java -jar $signapk_dir/signapk.jar $public_key $private_key \
+		  $flashables_dir/$kernel_name/$1 $signapk_dir/$1
+
+	mv -f $signapk_dir/$1 $flashables_dir/$kernel_name/$1
+}
+
 make_flashable()
 {
 	print "${clr_cyan}----- Creating flashable archive...${clr_reset}"
@@ -137,6 +155,8 @@ make_flashable()
 
 	date=$(date +"%Y%m%d");
 	cd $kernel_name && zip -r ${kernel_name}-$date.zip . && cd $flashables_dir
+
+	sign_flashable "${kernel_name}-$date.zip"
 
 	[ -d $outputs_dir/$kernel_name/archived ] ||
 	mkdir -p $outputs_dir/$kernel_name/archived
