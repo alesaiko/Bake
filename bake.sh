@@ -49,7 +49,7 @@ terminate()
 	[ "$1" == "5" ] && error="You should include script via \"source\" command!"
 
 	print "${clr_red}----- ERROR: $error\n\nScript terminated with error $1${clr_reset}"
-	[ $3 ] && sleep $3
+	[ $3 ] && sleep $3 || sleep 3
 	exit $1
 }
 
