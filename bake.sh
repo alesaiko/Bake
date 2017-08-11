@@ -109,6 +109,9 @@ cleanup_kernel_tree()
 		       arch/*/include/generated		\
 		       include/generated
 
+		[ "$cur_config" == "hammerhead.conf" ] &&
+		rm -f arch/arm/mach-msm/smd_rpc_sym.c
+
 		find . -type f \( -iname \*.rej			\
 			       -o -iname \*.orig		\
 			       -o -iname \*.bkp			\
