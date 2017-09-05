@@ -32,6 +32,9 @@ outputs_dir="${root_dir}/outputs"
 
 let "nr_cpus = $(grep "processor" /proc/cpuinfo | wc -l) * 2"
 
+autotagging=false
+tagname="breakfast"
+
 print()
 {
 	# Delay is required to make output smoother
@@ -185,6 +188,9 @@ make_kernel()
 		start_time=$(date +"%s.%N");
 
 		cd $kernels_dir/$kernel_name
+
+		[ $autotagging == "true" ] &&
+		git tag -a -f -m "$tagname" $tagname &>/dev/null
 
 		make $defconfig && make -j$nr_cpus $kernel_image
 
