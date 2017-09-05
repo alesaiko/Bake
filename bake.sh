@@ -32,8 +32,6 @@ outputs_dir="${root_dir}/outputs"
 
 let "nr_cpus = $(grep "processor" /proc/cpuinfo | wc -l) * 2"
 
-[ -f /usr/bin/ccache ] && export USE_CCACHE="1"
-
 print()
 {
 	# Delay is required to make output smoother
