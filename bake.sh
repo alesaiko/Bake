@@ -12,206 +12,205 @@ clear
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-bf_ver=3.0.0
+BFVER=3.1.0
 
-clr_red=$(tput bold)$(tput setaf 1);
-clr_green=$(tput bold)$(tput setaf 2);
-clr_yellow=$(tput bold)$(tput setaf 3);
-clr_blue=$(tput bold)$(tput setaf 4);
-clr_magenta=$(tput bold)$(tput setaf 5);
-clr_cyan=$(tput bold)$(tput setaf 6);
-clr_reset=$(tput sgr0);
+REDCL=$(tput bold)$(tput setaf 1)
+GRNCL=$(tput bold)$(tput setaf 2)
+BLUCL=$(tput bold)$(tput setaf 4)
+MGTCL=$(tput bold)$(tput setaf 5)
+CYACL=$(tput bold)$(tput setaf 6)
+RSTCL=$(tput sgr0)
 
-root_dir=$(readlink -f .);
-configs_dir="${root_dir}/configs"
-kernels_dir="${root_dir}/kernels"
-signapk_dir="${root_dir}/signapk"
-flashables_dir="${root_dir}/flashables"
-toolchains_dir="${root_dir}/toolchains"
-outputs_dir="${root_dir}/outputs"
+CRDIR=$(pwd)
+RTDIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
+CFDIR="${RTDIR}/configs"
+KNDIR="${RTDIR}/kernels"
+SADIR="${RTDIR}/signapk"
+FSDIR="${RTDIR}/flashables"
+TCDIR="${RTDIR}/toolchains"
+OPDIR="${RTDIR}/outputs"
+NRCPS=$(($(grep "processor" /proc/cpuinfo | wc -l) * 2 ))
 
-let "nr_cpus = $(grep "processor" /proc/cpuinfo | wc -l) * 2"
-
-autotagging=false
-tagname="breakfast"
+AUTAG="true"
+TAGNM="breakfast"
 
 print()
 {
-	# Delay is required to make output smoother
-	printf "$1\n"; sleep 0.125
+	printf "$1${RSTCL}\n"
+	sleep 0.125
 }
 
 terminate()
 {
-	[ "$1" == "-1" ] && error="Bake is damaged!\n----- Broken part -> $2"
-	[ "$1" == "0" ] && error="No argument passed!"
-	[ "$1" == "1" ] && error="$2 was not found!"
-	[ "$1" == "2" ] && error="$2 was not loaded!"
-	[ "$1" == "3" ] && error="Kernel stuck in build!"
-	[ "$1" == "4" ] && error="Could not create flashable archive!"
+	case "$1" in
+		0) error="Bake is damaged!\n- Broken part -> $2";;
+		1) error="No argument passed!";;
+		2) error="$2 was not found!";;
+		3) error="$2 was not loaded!";;
+		4) error="Kernel stuck in build!";;
+		5) error="Couldn't create flashable archive!";;
+		6) error="I/O failure!";;
+		*) error="Unknown error!";;
+	esac
 
-	print "${clr_red}----- ERROR: $error\n\nScript terminated with error $1${clr_reset}"
-	[ $3 ] && sleep $3 || sleep 3
+	print "${REDCL}- ERROR: $error\n\nScript terminated with error $1!" &&
+	sleep 2.875
+
 	exit $1
 }
 
-check_bake_init()
+prepare_environment()
 {
-	print "${clr_cyan}----- Starting Bake v${bf_ver}...${clr_reset}"
-
-	for dir in $configs_dir $kernels_dir $flashables_dir \
-		   $toolchains_dir $outputs_dir; do
-		[ -s $dir ] || terminate "-1" "$dir"
-	done
-}; check_bake_init
-
-find_config()
-{
-	export cur_config=$(find $configs_dir/$1* -printf "%f\n" -quit 2>/dev/null);
-	[ $cur_config ] || terminate "1" "$1"
+	for var in ARCH SUBARCH KNAME KTYPE DFCFG TOOLC; do unset $var; done
 }
 
-check_args()
+config_is_loaded()
 {
-	[ "$1" == "config" ] &&
-	if [ ! $ARCH ] || [ ! $SUBARCH ] || [ ! $flashable_name ] ||
-	   [ ! $kernel_name ] || [ ! $kernel_image ] || [ ! $defconfig ] ||
-	   [ ! $toolchain ]; then
-		return 0
-	fi
+	[ ! -z $ARCH ] && [ ! -z $SUBARCH ] && [ ! -z $KNAME ] &&
+	[ ! -z $KTYPE ] && [ ! -z $DFCFG ] && [ ! -z $TOOLC ] &&
+	[ ! -z $CROSS_COMPILE ] || return 1
 
-	return 1
+	return 0
 }
 
-init_bake_config()
+load_config()
 {
-	print "${clr_magenta}----- Loading $1...${clr_reset}"
+	[ ! -z $1 ] || terminate "1"
 
-	source ${configs_dir}/$1
-	if (check_args "config"); then terminate "2" "$1"; fi
+	CRCFG=$(find $CFDIR/$1* -printf "%f\n" -quit 2>/dev/null)
+	[ ! -z $CRCFG ] || terminate "2" "$1"
 
-	export CROSS_COMPILE="$toolchains_dir/$toolchain/bin/${toolchain}-"
+	print "${MGTCL}- Loading $CRCFG..."
+	prepare_environment
 
-	print "${clr_green}----- $1 was successfully loaded!${clr_reset}"
+	source ${CFDIR}/$CRCFG &&
+	export CROSS_COMPILE="$TCDIR/$TOOLC/bin/${TOOLC}-"
+	(config_is_loaded) || terminate "3" "$CRCFG"
+
+	print "${GRNCL}- $CRCFG was successfully loaded!"
 }
 
-cleanup_kernel_tree()
+prepare_kernel_tree()
 {
-	if [ -d $kernels_dir/$kernel_name ]; then
-		print "${clr_cyan}----- Cleaning ${kernel_name}...${clr_reset}"
+	(config_is_loaded) || terminate "3" "Bake config"
 
-		cd $kernels_dir/$kernel_name
+	[ -f $KNDIR/$KNAME/Makefile ] && cd $KNDIR/$KNAME ||
+	terminate "2" "$KNDIR/$KNAME/Makefile"
 
-		[ -f scripts/basic/fixdep ] && (make clean; make mrproper);
+	print "${CYACL}- Preparing ${KNAME}..."
 
-		rm -rf arch/$ARCH/boot/*.dtb		\
-		       arch/$ARCH/boot/*.cmd		\
-		       arch/$ARCH/crypto/aesbs-core.S	\
-		       arch/*/include/generated		\
-		       include/generated
+	[ -f scripts/basic/fixdep ] && (make clean; make mrproper)
 
-		[ "$cur_config" == "hammerhead.conf" ] &&
-		rm -f arch/arm/mach-msm/smd_rpc_sym.c
+	rm -rf arch/$ARCH/boot/*.dtb		\
+	       arch/$ARCH/boot/*.cmd		\
+	       arch/$ARCH/crypto/aesbs-core.S	\
+	       arch/*/include/generated		\
+	       include/generated
 
-		find . -type f \( -iname \*.rej			\
-			       -o -iname \*.orig		\
-			       -o -iname \*.bkp			\
-			       -o -iname \*.ko			\
-			       -o -iname \*.c.BACKUP.[0-9]*.c	\
-			       -o -iname \*.c.BASE.[0-9]*.c	\
-			       -o -iname \*.c.LOCAL.[0-9]*.c	\
-			       -o -iname \*.c.REMOTE.[0-9]*.c	\
-			       -o -iname \*.org \)		\
-					| parallel rm -fv {}
+	find . -type f \( -iname \*.rej			\
+		       -o -iname \*.orig		\
+		       -o -iname \*.bkp			\
+		       -o -iname \*.ko			\
+		       -o -iname \*.c.BACKUP.[0-9]*.c	\
+		       -o -iname \*.c.BASE.[0-9]*.c	\
+		       -o -iname \*.c.LOCAL.[0-9]*.c	\
+		       -o -iname \*.c.REMOTE.[0-9]*.c	\
+		       -o -iname \*.org \)		\
+				| parallel rm -fv {}
 
-		cd $root_dir
-	else
-		terminate "-1" "$kernels_dir/$kernel_name"
-	fi
+	[ "$CRCFG" == "hammerhead.conf" ] &&
+	rm -f arch/$ARCH/mach-msm/smd_rpc_sym.c
+
+	cd $CRDIR
 }
 
 sign_flashable()
 {
-	[ -f $signapk_dir/signapk.jar ] &&
-	[ -f $signapk_dir/keys/*.pk8 ] &&
-	[ -f $signapk_dir/keys/*.pem ] &&
-	[ -f $flashables_dir/$kernel_name/$1 ] ||
-	return 0
+	(config_is_loaded) || terminate "3" "Bake config"
+	[ ! -z $1 ] || terminate "1"
 
-	private_key=$(find $signapk_dir/keys/*.pk8 | head -1);
-	public_key=$(find $signapk_dir/keys/*.pem | head -1);
+	[ -f $SADIR/signapk.jar ] && [ -f $SADIR/keys/*.pk8 ] &&
+	[ -f $SADIR/keys/*.pem ] && [ -f $FSDIR/$KNAME/$1 ] || return 1
 
-	java -jar $signapk_dir/signapk.jar $public_key $private_key \
-		  $flashables_dir/$kernel_name/$1 $signapk_dir/$1
+	print "${CYACL}- Signing $1..."
 
-	mv -f $signapk_dir/$1 $flashables_dir/$kernel_name/$1
+	PVKEY=$(find $SADIR/keys/*.pk8 | head -1)
+	PBKEY=$(find $SADIR/keys/*.pem | head -1)
+
+	java -jar $SADIR/signapk.jar $PBKEY $PVKEY $FSDIR/$KNAME/$1 $SADIR/$1
+	mv -f $SADIR/$1 $FSDIR/$KNAME/$1
 }
 
 make_flashable()
 {
-	print "${clr_cyan}----- Creating flashable archive...${clr_reset}"
+	(config_is_loaded) || terminate "3" "Bake config"
 
-	[ -f $kernels_dir/$kernel_name/arch/$ARCH/boot/$kernel_image ] ||
-	terminate "-1" $kernels_dir/$kernel_name/arch/$ARCH/boot/$kernel_image
+	[ -f $KNDIR/$KNAME/arch/$ARCH/boot/$KTYPE ] ||
+	terminate "2" "$KNDIR/$KNAME/arch/$ARCH/boot/$KTYPE"
 
-	cd $flashables_dir
+	print "${CYACL}- Creating flashable archive..."
 
-	[ -d $kernel_name ] || mkdir -p $kernel_name/kernel
+	[ -d $FSDIR/$KNAME ] || mkdir -p $FSDIR/$KNAME/kernel
+	mv -f $KNDIR/$KNAME/arch/$ARCH/boot/$KTYPE $FSDIR/$KNAME/kernel/
 
-	rm -f $flashables_dir/$kernel_name/kernel/$kernel_image
-	mv $kernels_dir/$kernel_name/arch/$ARCH/boot/$kernel_image $kernel_name/kernel
+	DATE=$(date +"%Y%m%d")
+	cd $FSDIR/$KNAME && zip -r ${KNAME}-$DATE.zip . && cd $CRDIR
+	[ $? == "0" ] || terminate "6"
 
-	date=$(date +"%Y%m%d");
-	cd $kernel_name && zip -r ${kernel_name}-$date.zip . && cd $flashables_dir
+	sign_flashable "${KNAME}-$DATE.zip"
 
-	sign_flashable "${kernel_name}-$date.zip"
+	[ -d $OPDIR/$KNAME/archived ] || mkdir -p $OPDIR/$KNAME/archived
+	mv -f $OPDIR/$KNAME/$KNAME*.zip $OPDIR/$KNAME/archived/ &>/dev/null
 
-	[ -d $outputs_dir/$kernel_name/archived ] ||
-	mkdir -p $outputs_dir/$kernel_name/archived
-	[ -f $outputs_dir/$kernel_name/$kernel_name* ] &&
-	mv $outputs_dir/$kernel_name/$kernel_name* $outputs_dir/$kernel_name/archived/
-
-	mv $flashables_dir/$kernel_name/${kernel_name}-$date.zip $outputs_dir/$kernel_name/
-	[ -f $outputs_dir/$kernel_name/${kernel_name}-$date.zip ] || terminate "4"
-
-	cd $root_dir
+	mv $FSDIR/$KNAME/${KNAME}-$DATE.zip $OPDIR/$KNAME/
+	[ -f $OPDIR/$KNAME/${KNAME}-$DATE.zip ] || terminate "5"
 }
 
 make_kernel()
 {
-	if [ -d $kernels_dir/$kernel_name ]; then
-		print "${clr_cyan}----- Building ${kernel_name}...${clr_reset}"
-		print "${clr_blue}----- Build starts in 3${clr_reset}"; sleep 1
-		print "${clr_blue}----- Build starts in 2${clr_reset}"; sleep 1
-		print "${clr_blue}----- Build starts in 1${clr_reset}"; sleep 1
+	(config_is_loaded) || terminate "3" "Bake config"
 
-		start_time=$(date +"%s.%N");
+	[ -d $KNDIR/$KNAME ] && cd $KNDIR/$KNAME ||
+	terminate "0" "$KNDIR/$KNAME"
 
-		cd $kernels_dir/$kernel_name
+	print "${CYACL}- Building ${KNAME}..."
+	for i in 3 2 1; do
+		print "${BLUCL}- Build starts in $i"
+		sleep 0.875
+	done
 
-		[ $autotagging == "true" ] &&
-		git tag -a -f -m "$tagname" $tagname &>/dev/null
+	STIME=$(date +"%s.%N")
+	[ $AUTAG == "true" ] && git tag -afm "$TAGNM" $TAGNM &>/dev/null
 
-		make $defconfig && make -j$nr_cpus $kernel_image
+	make $DFCFG
+	make -j$NRCPS $KTYPE				\
+		REAL_CC="$CACHE ${CROSS_COMPILE}gcc"	\
+		CFLAGS_MODULE="-DMODULE $FLAGS"		\
+		AFLAGS_MODULE="-DMODULE $FLAGS"		\
+		CFLAGS_KERNEL="$FLAGS"			\
+		AFLAGS_KERNEL="$FLAGS"
+	cd $CRDIR
 
-		[ -f arch/$ARCH/boot/$kernel_image ] &&
-		(make_flashable; cleanup_kernel_tree) || terminate "3"
+	[ -f $KNDIR/$KNAME/arch/$ARCH/boot/$KTYPE ] &&
+	(make_flashable; prepare_kernel_tree) || terminate "4"
 
-		cd $root_dir
+	ETIME=$(date +"%s.%N")
+	RTIME=$(echo "scale=1; ($ETIME - $STIME) / 1" | bc)
 
-		end_time=$(date +"%s.%N");
-		elapsed_time=$(echo "scale=1; ($end_time - $start_time) / 1" | bc);
-
-		print "${clr_magenta}----- Kernel was successfully built!${clr_reset}"
-		print "${clr_cyan}----- Elapsed time: $elapsed_time seconds${clr_reset}"
-	else
-		terminate "-1" "$kernels_dir/$kernel_name"
-	fi
+	print "${MGTCL}- Kernel was successfully built!"
+	print "${CYACL}- Elapsed time: $RTIME seconds"
 }
 
+print "${CYACL}- Starting Bake v${BFVER}..."
 
-[ "$0" == "bash" ] || ([ $1 ] || terminate "0" &&
-(find_config $1
-init_bake_config $cur_config
-cleanup_kernel_tree
-make_kernel));
+for DIR in $CFDIR $KNDIR $FSDIR $TCDIR $OPDIR; do
+	[ -s $DIR ] || terminate "0" "$DIR"
+done
+
+if [ ! "$0" == "bash" ]; then
+	[ ! -z $1 ] || terminate "1"
+
+	load_config $1
+	prepare_kernel_tree
+	make_kernel
+fi
