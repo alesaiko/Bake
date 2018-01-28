@@ -1,0 +1,9 @@
+[submodule "kernels/breakfast-hammerhead"]
+	path = kernels/breakfast-hammerhead
+	url = https://github.com/alesaiko/breakfast-hammerhead
+[submodule "kernels/breakfast-flo"]
+	path = kernels/breakfast-flo
+	url = https://github.com/alesaiko/breakfast-flo
+[submodule "releases"]
+	path = releases
+	url = https://github.com/alesaiko/breakfast-releases/

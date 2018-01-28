@@ -4,8 +4,10 @@
 !.gitignore
 
 # Ignore kernels' source codes
-kernels/*
-flashables/*
+kernels/breakfast-*/*
+flashables/breakfast-*/kernel/ramparts/*
+flashables/breakfast-*/kernel/thermal/*
+flashables/breakfast-*/kernel/zImage*
 
 # Ignore outputs
 outputs/*
