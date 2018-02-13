@@ -126,9 +126,13 @@ check_model_id()
 check_compatibility()
 {
 	mount_system
-	for file in $MPDECISION $THERMAL_ENGINE $THERMAL_CONFIG $POWER_HAL; do
+	for file in $MPDECISION $THERMAL_ENGINE; do
 		[ -f "$file" ] || terminate "2"
 	done
+
+	[ -f "$POWER_HAL" ] ||
+	(ui_print "- ! PowerHAL is not found" &&
+	 ui_print "- ! Kernel may not work properly")
 
 	API=$(cat /system/build.prop | grep "ro.build.version.sdk=" | \
 	      dd bs=1 skip=21 count=2)
@@ -155,9 +159,7 @@ dump_boot_image()
 put_into_initramfs()
 {
 	[ -f $BF_RAMPARTS/$1 ] && [ ! -z $2 ] && [ ! -z $3 ] || return 1
-
-	rm -f $INITRAMFS/$2 &&
-	mv $BF_RAMPARTS/$1 $INITRAMFS/$2 && chmod $3 $INITRAMFS/$2
+	mv -f $BF_RAMPARTS/$1 $INITRAMFS/$2 && chmod $3 $INITRAMFS/$2
 }
 
 prepare_initramfs()
@@ -168,13 +170,14 @@ prepare_initramfs()
 	gunzip -c boot.img-ramdisk.gz | cpio -i && rm boot.img-ramdisk.gz
 
 	P=""
-	[ "$API" -ge "24" ] && [ "$API" -le "25" ] && P="_n"
+	[ "$API" -ge "24" ] && [ "$API" -le "25" ] && P="_n" &&
+	ui_print "- ! Android Nougat Compatibility Mode"
 
 	put_into_initramfs "init.${TARGET}$P.rc" "init.$TARGET.rc" "750"
 	put_into_initramfs "fstab.$TARGET" "fstab.$TARGET" "640"
 
-	find . | cpio -o -H newc | gzip > $BREAKFAST/boot.img-ramdisk.gz &&
-	cd / && rm -r $INITRAMFS
+	find . | cpio -o -H newc | gzip > $BREAKFAST/boot.img-ramdisk.gz
+	cd $BREAKFAST && rm -rf $INITRAMFS
 }
 
 create_boot_image()
@@ -206,10 +209,19 @@ install_kernel()
 
 replace_thermal_config()
 {
-	[ $(find $BF_THERMAL/thermal* 2>/dev/null) ] || return 1
+	TCFG=$(printf "$THERMAL_CONFIG" 2>/dev/null | sed 's/.*\///g')
+	[ ! -z $TCFG ] || return 1
 
 	mount_system
-	mv -f $BF_THERMAL/thermal* /system/etc/
+	ui_print "- Replacing thermal config..."
+
+	mv -f $BF_THERMAL/$TCFG $THERMAL_CONFIG 2>/dev/null
+	[ ! -z $THERMAL_CONFIG ] || return 1
+
+	chown 0:0 $THERMAL_CONFIG
+	chmod 0644 $THERMAL_CONFIG
+	chcon "u:object_r:system_file:s0" $THERMAL_CONFIG
+
 	(is_mounted /system) && umount /system
 }
 
@@ -238,7 +250,7 @@ create_boot_image
 ui_print "- Installing kernel..."
 install_kernel
 
-ui_print "- Replacing thermal config..."
+# Try to replace thermal configuration if there is any
 replace_thermal_config
 
 # All the work is done. Terminating for now.

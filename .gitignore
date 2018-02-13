@@ -5,9 +5,9 @@
 
 # Ignore kernels' source codes
 kernels/breakfast-*/*
-flashables/breakfast-*/kernel/ramparts/*
-flashables/breakfast-*/kernel/thermal/*
-flashables/breakfast-*/kernel/zImage*
+flashables/breakfast-*/ramparts/*
+flashables/breakfast-*/thermal/*
+flashables/breakfast-*/zImage*
 
 # Ignore outputs
 outputs/*
