@@ -91,7 +91,7 @@ mount_system()
 	[ ! -z "$POINT" ] && [ ! -z "$FS" ] && [ ! -z "$DEV" ] && (
 	(! is_mounted /system rw) && mount -t $FS -o rw $DEV $POINT
 	(! is_mounted /system rw) && mount -t $FS -o rw,remount $DEV $POINT)
-	[ "$?" -eq "0" ] && (is_mounted /system rw) || terminate "-1"
+	[ "$?" -eq "0" ] && (is_mounted /system rw) || terminate "121"
 }
 
 init_installation()
@@ -100,24 +100,24 @@ init_installation()
 	unzip -o "$ZIP"
 
 	[ -r $BF_KERNEL/config.sh ] &&
-	source $BF_KERNEL/config.sh || terminate "-1"
+	source $BF_KERNEL/config.sh || terminate "121"
 
 	[ ! -z $TARGET ] && [ ! -z $KERNEL_IMAGE ] &&
 	[ ! -z $API_LOWER ] && [ ! -z $API_UPPER ] &&
 	[ ! -z $MPDECISION ] && [ ! -z $THERMAL_ENGINE ] &&
-	[ ! -z $THERMAL_CONFIG ] && [ ! -z $POWER_HAL ] || terminate "-1"
+	[ ! -z $THERMAL_CONFIG ] && [ ! -z $POWER_HAL ] || terminate "121"
 
 	for file in unpack mk; do chmod 0750 $BF_TOOLS/${file}bootimg; done
-	[ "$?" -eq "0" ] || terminate "-1"
+	[ "$?" -eq "0" ] || terminate "121"
 }
 
 check_model_id()
 {
 	HW=$(getprop "ro.product.device")
-	[ "$?" -eq "0" ] || terminate "-1"
+	[ "$?" -eq "0" ] || terminate "121"
 
 	HW_NAME=$(getprop "ro.product.model")
-	[ "$?" -eq "0" ] || terminate "-1"
+	[ "$?" -eq "0" ] || terminate "121"
 
 	[ "$HW" == "$TARGET" ] || terminate "1"
 	ui_print "- Model ID - $HW_NAME ($HW)"
@@ -136,7 +136,7 @@ check_compatibility()
 
 	API=$(cat /system/build.prop | grep "ro.build.version.sdk=" | \
 	      dd bs=1 skip=21 count=2)
-	[ "$?" -eq "0" ] || terminate "-1"
+	[ "$?" -eq "0" ] || terminate "121"
 	(is_mounted /system) && umount /system
 
 	[ "$API" -ge "$API_LOWER" ] && [ "$API" -le "$API_UPPER" ] ||
