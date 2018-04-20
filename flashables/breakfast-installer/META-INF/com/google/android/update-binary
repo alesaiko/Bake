@@ -50,18 +50,25 @@ is_mounted()
 
 terminate()
 {
-	# Make a proper cleanup
+	# Make a proper cleanup.
 	cd / && rm -rf $BREAKFAST
 	(is_mounted /system) && umount /system
 
 	case "$1" in
-	0) msg="- Done!";;
-	1) msg="- ! This kernel is compatible with $TARGET only";;
-	2) msg="- ! This kernel is not compatible with your ROM";;
-	3) msg="- ! Failed to find a boot block";;
-	4) msg="- ! Failed to dump a boot block";;
-	5) msg="- ! Failed to write a new boot block";;
-	*) msg="- ! Internal error occured";;
+	 0) msg="- Done!";;
+	 1) msg="- ! This kernel is compatible with $TARGET only.";;
+	 2) msg="- ! This kernel is not compatible with your ROM.";;
+	 3) msg="- ! Unable to find a boot block.";;
+	 4) msg="- ! Unable to dump a boot block.";;
+	 5) msg="- ! Unable to write a new boot block.";;
+	 6) msg="- ! Unable to mount system block.";;
+	 7) msg="- ! Unable to find Breakfast configuration file.";;
+	 8) msg="- ! Unable to load Breakfast configuration file.";;
+	 9) msg="- ! Unable to change permissions of binary tools.";;
+	10) msg="- ! Unable to get device property.";;
+	11) msg="- ! Unable to get build.prop property.";;
+	12) msg="- ! Unable to find Breakfast installer resources.";;
+	 *) msg="- ! Internal error occured.";;
 	esac
 
 	[ "$1" -eq "0" ] || ui_print " "
@@ -73,86 +80,119 @@ terminate()
 
 mount_system()
 {
-	# There is no point in remounting the already mounted system
+	# There is no point in remounting the already mounted system.
 	(is_mounted /system rw) && return 0
 
 	mount -o rw /system
 	mount -o rw,remount /system
 
+	# Return early if system has been successfully mounted.
 	(is_mounted /system rw) && return 0
 
-	# If generic calls didn't help, try to mount system meticulously
+	# If generic calls didn't help, try to mount system meticulously.
 	for i in $(cat /etc/recovery.fstab | grep -v "#" | grep "/system"); do
-		[ -z "$POINT" ] && POINT=$i && continue
-		[ -z "$FS" ] && FS=$i && continue
-		[ -z "$DEV" ] && DEV=$i && break
+		[ -z ${POINT+x} ] && POINT=$i && continue
+		[ -z ${FS+x} ] && FS=$i && continue
+		[ -z ${DEV+x} ] && DEV=$i && break
 	done
 
-	[ ! -z "$POINT" ] && [ ! -z "$FS" ] && [ ! -z "$DEV" ] && (
+	[ ! -z ${POINT+x} ] && [ ! -z ${FS+x} ] && [ ! -z ${DEV+x} ] && (
 	(! is_mounted /system rw) && mount -t $FS -o rw $DEV $POINT
 	(! is_mounted /system rw) && mount -t $FS -o rw,remount $DEV $POINT)
-	[ "$?" -eq "0" ] && (is_mounted /system rw) || terminate "121"
+	[ "$?" -eq "0" ] && (is_mounted /system rw) || terminate 6
+}
+
+config_loaded()
+{
+	# Check whether all the required variables are actually set.
+	[ ! -z ${TARGET+x} ] && [ ! -z ${KERNEL_IMAGE+x} ] &&
+	[ ! -z ${API_LOWER+x} ] && [ ! -z ${API_UPPER+x} ] &&
+	[ ! -z ${MPDECISION+x} ] && [ ! -z ${THERMAL_ENGINE+x} ] &&
+	[ ! -z ${THERMAL_CONFIG+x} ] && [ ! -z ${POWER_HAL+x} ] &&
+	return 0 || return 1
 }
 
 init_installation()
 {
-	rm -rf $BREAKFAST && mkdir -p $INITRAMFS && cd $BREAKFAST
+	# Regenerate Breakfast directory.
+	rm -rf $BREAKFAST && mkdir $BREAKFAST && cd $BREAKFAST
+
+	# Extract kernel package into the directory recreated above.
 	unzip -o "$ZIP"
 
-	[ -r $BF_KERNEL/config.sh ] &&
-	source $BF_KERNEL/config.sh || terminate "121"
+	# Ensure Breakfast resources are present.
+	[ -d "$BF_KERNEL" ] && [ -d "$BF_TOOLS" ] || terminate 12
 
-	[ ! -z $TARGET ] && [ ! -z $KERNEL_IMAGE ] &&
-	[ ! -z $API_LOWER ] && [ ! -z $API_UPPER ] &&
-	[ ! -z $MPDECISION ] && [ ! -z $THERMAL_ENGINE ] &&
-	[ ! -z $THERMAL_CONFIG ] && [ ! -z $POWER_HAL ] || terminate "121"
+	# Try to load Breakfast installer configuration.
+	[ -r "$BF_KERNEL/config.sh" ] || terminate 7
+	source $BF_KERNEL/config.sh
 
+	# Ensure the configuration was loaded.
+	(config_loaded) || terminate 8
+
+	# Assign "executable" bits to binary tools.
 	for file in unpack mk; do chmod 0750 $BF_TOOLS/${file}bootimg; done
-	[ "$?" -eq "0" ] || terminate "121"
+	[ "$?" -eq "0" ] || terminate 9
 }
 
 check_model_id()
 {
 	HW=$(getprop "ro.product.device")
-	[ "$?" -eq "0" ] || terminate "121"
+	[ "$?" -eq "0" ] || terminate 10
 
 	HW_NAME=$(getprop "ro.product.model")
-	[ "$?" -eq "0" ] || terminate "121"
+	[ "$?" -eq "0" ] || terminate 10
 
-	[ "$HW" == "$TARGET" ] || terminate "1"
+	# Compare a gathered hardware identificator with the specified one.
+	[ "$HW" == "$TARGET" ] || terminate 1
 	ui_print "- Model ID - $HW_NAME ($HW)"
+}
+
+getbprop()
+{
+	[ ! -z $1 ] || return 1
+	sed -n "s/^$1=//p" "/system/build.prop" 2>/dev/null | head -n 1
 }
 
 check_compatibility()
 {
+	# A system block must be mounted before manipulating with system files.
 	mount_system
+
+	# Ensure required system blobs are in place.
 	for file in $MPDECISION $THERMAL_ENGINE; do
-		[ -f "$file" ] || terminate "2"
+		[ -f "$file" ] || terminate 2
 	done
 
+	# PowerHAL may be ommitted, which is suboptimal, though.
 	[ -f "$POWER_HAL" ] ||
-	(ui_print "- ! PowerHAL is not found" &&
-	 ui_print "- ! Kernel may not work properly")
+	(ui_print "- ! PowerHAL is not found." &&
+	 ui_print "- ! Kernel may not work properly.")
 
-	API=$(cat /system/build.prop | grep "ro.build.version.sdk=" | \
-	      dd bs=1 skip=21 count=2)
-	[ "$?" -eq "0" ] || terminate "121"
-	(is_mounted /system) && umount /system
+	# Ensure the kernel is compatible with device's API level.
+	API=$(getbprop "ro.build.version.sdk")
+	[ "$?" -eq "0" ] || terminate 11
 
 	[ "$API" -ge "$API_LOWER" ] && [ "$API" -le "$API_UPPER" ] ||
-	terminate "2"
+	terminate 2
+
+	# Unmount system block as all the work has been done.
+	(is_mounted /system) && umount /system
 }
 
 dump_boot_image()
 {
+	# Try to parse boot image block name from fs table.
 	BOOTIMAGE=$(grep -v '#' /etc/recovery.fstab |	\
 		    grep -E '/boot[^a-zA-Z]' |		\
 		    grep -oE '/dev/[a-zA-Z0-9_./-]*')
-	[ ! -z $BOOTIMAGE ] || terminate "3"
+	[ ! -z $BOOTIMAGE ] || terminate 3
 
+	# Copy boot block to a temporary directory.
 	/sbin/busybox dd if="$BOOTIMAGE" of="$BREAKFAST/boot.img"
-	[ "$?" == "0" ] || terminate "4"
+	[ "$?" -eq "0" ] || terminate 4
 
+	# Unpack boot block to gather its initramfs partition.
 	$BF_TOOLS/unpackbootimg -i "$BREAKFAST/boot.img" -o "$BREAKFAST"
 }
 
@@ -164,24 +204,30 @@ put_into_initramfs()
 
 prepare_initramfs()
 {
+	# Regenerate target initramfs subdir.
 	rm -rf $INITRAMFS && mkdir $INITRAMFS && cd $INITRAMFS
 
+	# Move extracted initramfs image there and uncpio it.
 	mv $BREAKFAST/boot.img-ramdisk.gz . &&
 	gunzip -c boot.img-ramdisk.gz | cpio -i && rm boot.img-ramdisk.gz
 
+	# Run compatibility modes on other Android variations.
 	P=""
 	[ "$API" -ge "24" ] && [ "$API" -le "25" ] && P="_n" &&
 	ui_print "- ! Android Nougat Compatibility Mode"
 
+	# Put modified device-specific init scripts into target initramfs.
 	put_into_initramfs "init.${TARGET}$P.rc" "init.$TARGET.rc" "750"
 	put_into_initramfs "fstab.$TARGET" "fstab.$TARGET" "640"
 
+	# Cpio initramfs image again and clean up.
 	find . | cpio -o -H newc | gzip > $BREAKFAST/boot.img-ramdisk.gz
 	cd $BREAKFAST && rm -rf $INITRAMFS
 }
 
 create_boot_image()
 {
+	# Set up a command line to be passed to mkbootimg binary tool.
 	COMMAND_LINE="
 	$BF_TOOLS/mkbootimg						  \
 	--kernel		\"$BF_KERNEL/$KERNEL_IMAGE\"		  \
@@ -197,31 +243,39 @@ create_boot_image()
 	--hash			\"$(cat $BREAKFAST/boot.img-hash)\"	  \
 	--output		\"$BREAKFAST/breakfast.img\""
 
+	# Create a temporary script with a command line above and execute it.
 	printf "#!/sbin/sh\n$COMMAND_LINE" > $BREAKFAST/createnewboot.sh
 	chmod 750 $BREAKFAST/createnewboot.sh && $BREAKFAST/createnewboot.sh
 }
 
 install_kernel()
 {
+	# Try to write a new boot image to the appropriate partition.
 	/sbin/busybox dd if="$BREAKFAST/breakfast.img" of="$BOOTIMAGE"
-	[ "$?" == "0" ] || terminate "5"
+	[ "$?" -eq "0" ] || terminate 5
 }
 
 replace_thermal_config()
 {
+	# Ensure thermal configuration is set in installer configuration.
 	TCFG=$(printf "$THERMAL_CONFIG" 2>/dev/null | sed 's/.*\///g')
-	[ ! -z $TCFG ] || return 1
+	[ ! -z ${TCFG+x} ] &&
+	[ -d "$BF_THERMAL" ] && [ -f "$BF_THERMAL/$TCFG" ] || return 1
 
+	# A system block must be mounted before manipulating with system files.
 	mount_system
+
 	ui_print "- Replacing thermal config..."
 
+	# Replace system thermal configuration file with a modified one.
 	mv -f $BF_THERMAL/$TCFG $THERMAL_CONFIG 2>/dev/null
-	[ ! -z $THERMAL_CONFIG ] || return 1
 
+	# Set up security owner, mode and context.
 	chown 0:0 $THERMAL_CONFIG
 	chmod 0644 $THERMAL_CONFIG
 	chcon "u:object_r:system_file:s0" $THERMAL_CONFIG
 
+	# Unmount system block as all the work has been done.
 	(is_mounted /system) && umount /system
 }
 
@@ -250,8 +304,8 @@ create_boot_image
 ui_print "- Installing kernel..."
 install_kernel
 
-# Try to replace thermal configuration if there is any
+# Try to replace thermal configuration if there is any.
 replace_thermal_config
 
 # All the work is done. Terminating for now.
-terminate "0"
+terminate 0
