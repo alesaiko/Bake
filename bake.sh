@@ -13,7 +13,7 @@ clear
 # GNU General Public License for more details.
 
 # Version number of this script.
-BREAKFAST_VERSION="3.3"
+BREAKFAST_VERSION="3.3.1"
 
 # Flag to reset all applied colors.
 COLOR_RESET=$(tput sgr0)
@@ -57,22 +57,14 @@ print() { printf "${1}${COLOR_RESET}\n"; sleep 0.125; }
 terminate()
 {
 	case "$1" in
-	EISDMG)
-		msg="Bake script is damaged!\n! Broken part --> $2";;
-	EINVAL)
-		msg="No argument passed.";;
-	ENOENT)
-		msg="$2 was not found.";;
-	ENLOAD)
-		msg="$2 was not loaded.";;
-	EFAULT)
-		msg="Kernel stuck in build.";;
-	ENFLSH)
-		msg="Unable to create flashable archive.";;
-	EIO)
-		msg="I/O failure.";;
-	*)
-		msg="Unknown error.";;
+	1) msg="Bake script is damaged!\n! Broken part --> $2";;
+	2) msg="No argument passed.";;
+	3) msg="$2 was not found.";;
+	4) msg="$2 was not loaded.";;
+	5) msg="Kernel stuck in build.";;
+	6) msg="Unable to create flashable archive.";;
+	7) msg="I/O failure.";;
+	*) msg="Unknown error.";;
 	esac
 
 	# Remove temporary flashable directory as it will be overwritten anyway.
@@ -87,10 +79,10 @@ terminate()
 config_loaded()
 {
 	# Check whether all the required variables are actually set.
-	[ ! -z ${ARCH+x} ] && [ ! -z ${SUBARCH+x} ] &&
-	[ ! -z ${KERNEL_SOURCE+x} ] && [ ! -z ${DEFAULT_CONFIGURATION+x} ] &&
-	[ ! -z ${TARGET_TOOLCHAIN+x} ] && [ ! -z ${KERNEL_TYPE+x} ] &&
-	[ ! -z ${CCACHE_USED+x} ] && [ ! -z ${CROSS_COMPILE+x} ] &&
+	[ ! -z $ARCH ] && [ ! -z $SUBARCH ] &&
+	[ ! -z $KERNEL_SOURCE ] && [ ! -z $DEFAULT_CONFIGURATION ] &&
+	[ ! -z $TARGET_TOOLCHAIN ] && [ ! -z $KERNEL_TYPE ] &&
+	[ ! -z $CCACHE_USED ] && [ ! -z $CROSS_COMPILE ] &&
 	return 0 || return 1
 }
 
@@ -99,12 +91,12 @@ prepare_environment()
 	print "${COLOR_CYAN}- Preparing working environment..."
 
 	# Unset all the required variables to avoid the theoretical conflicts.
-	for var in ARCH SUBARCH \
-		   KERNEL_SOURCE \
-		   DEFAULT_CONFIGURATION \
-		   TARGET_TOOLCHAIN \
-		   KERNEL_TYPE \
-		   CCACHE_USED \
+	for var in ARCH SUBARCH				\
+		   KERNEL_SOURCE			\
+		   DEFAULT_CONFIGURATION		\
+		   TARGET_TOOLCHAIN			\
+		   KERNEL_TYPE				\
+		   CCACHE_USED				\
 		   CROSS_COMPILE; do
 		unset $var;
 	done
@@ -113,11 +105,11 @@ prepare_environment()
 load_config()
 {
 	# This function expects an argument to be passed.
-	[ ! -z ${1+x} ] || terminate EINVAL
+	[ ! -z $1 ] || terminate 2
 
 	# Try to find a requested configuration in an appropriate directory.
 	TARGET_CONFIG=$(find $DIR_CONFIGS/$1* -printf "%f\n" -quit 2>/dev/null)
-	[ ! -z ${TARGET_CONFIG+x} ] || terminate ENOENT "$1"
+	[ ! -z $TARGET_CONFIG ] || terminate 3 "$1"
 
 	print "${COLOR_MAGENTA}- Loading Bake configuration --> $TARGET_CONFIG"
 	# Prepare Bash environment before sourcing the new configuration file.
@@ -130,7 +122,7 @@ load_config()
 
 	# Ensure all the things have been made properly.
 	print "${COLOR_MAGENTA}- Validating Bake configuration..."
-	(config_loaded) || terminate ENLOAD "$TARGET_CONFIG"
+	(config_loaded) || terminate 4 "$TARGET_CONFIG"
 
 	print "${COLOR_GREEN}- $TARGET_CONFIG was successfully loaded!"
 }
@@ -138,11 +130,11 @@ load_config()
 prepare_kernel_tree()
 {
 	# This function cannot work without a configuration loaded.
-	(config_loaded) || terminate ENLOAD "Bake configuration"
+	(config_loaded) || terminate 4 "Bake configuration"
 
 	# Ensure there is a work-ready kernel tree.
 	[ -f "$DIR_KERNELS/$KERNEL_SOURCE/Makefile" ] ||
-	terminate ENOENT "$DIR_KERNELS/$KERNEL_SOURCE/Makefile"
+	terminate 3 "$DIR_KERNELS/$KERNEL_SOURCE/Makefile"
 
 	print "${COLOR_CYAN}- Preparing ${KERNEL_SOURCE} tree..."
 
@@ -153,10 +145,10 @@ prepare_kernel_tree()
 	[ -e "scripts/basic/fixdep" ] && (make clean mrproper)
 
 	# Remove leftovers of the compilation.
-	rm -rf arch/$ARCH/boot/*.dtb		\
-	       arch/$ARCH/boot/*.cmd		\
-	       arch/$ARCH/crypto/aesbs-core.S	\
-	       arch/*/include/generated		\
+	rm -rf arch/$ARCH/boot/*.dtb			\
+	       arch/$ARCH/boot/*.cmd			\
+	       arch/$ARCH/crypto/aesbs-core.S		\
+	       arch/*/include/generated			\
 	       include/generated
 
 	# Try to remove *unneeded* files via parallel if supported.
@@ -183,7 +175,7 @@ prepare_kernel_tree()
 sign_package()
 {
 	# This function expects an argument to be passed.
-	[ ! -z ${1+x} ] || terminate EINVAL
+	[ ! -z $1 ] || terminate 2
 
 	# Check the presence of the required files.
 	[ -f $DIR_SIGNAPK/signapk.jar ] && [ -f $DIR_SIGNAPK/keys/*.pk8 ] &&
@@ -208,7 +200,7 @@ sign_package()
 __make_kernel()
 {
 	# This function expects configuration to be loaded.
-	(config_loaded) || terminate ENLOAD "Bake configuration"
+	(config_loaded) || terminate 4 "Bake configuration"
 
 	# Clean-up the working tree and ensure there is one.
 	prepare_kernel_tree
@@ -240,7 +232,7 @@ __make_kernel()
 
 	# Ensure the kernel has been compiled succssfully.
 	[ -f "$DIR_KERNELS/$KERNEL_SOURCE/arch/$ARCH/boot/$KERNEL_TYPE" ] ||
-	terminate EFAULT
+	terminate 5
 
 	print "${COLOR_GREEN}- $KERNEL_SOURCE was successfully built!"
 	cd $DIR_SOURCE
@@ -249,20 +241,19 @@ __make_kernel()
 __make_flashable()
 {
 	# This function expects configuration to be loaded.
-	(config_loaded) || terminate ENLOAD "Bake configuration"
+	(config_loaded) || terminate 4 "Bake configuration"
 
 	print "${COLOR_CYAN}- Creating flashable kernel..."
 
 	# Ensure all the required directories and files are actually set up.
 	[ -s "$DIR_INSTALLER" ] ||
-	terminate ENOENT "$DIR_INSTALLER"
+	terminate 3 "$DIR_INSTALLER"
 
 	[ -s "$DIR_FLASHABLES/$KERNEL_SOURCE" ] ||
-	terminate ENOENT "$DIR_FLASHABLES/$KERNEL_SOURCE"
+	terminate 3 "$DIR_FLASHABLES/$KERNEL_SOURCE"
 
 	[ -s "$DIR_KERNELS/$KERNEL_SOURCE/arch/$ARCH/boot/$KERNEL_TYPE" ] ||
-	terminate ENOENT \
-		 "$DIR_KERNELS/$KERNEL_SOURCE/arch/$ARCH/boot/$KERNEL_TYPE"
+	terminate 3 "$DIR_KERNELS/$KERNEL_SOURCE/arch/$ARCH/boot/$KERNEL_TYPE"
 
 	# Regenerate temporary directory for flashable structure.
 	rm -rf $TMP_FLASHABLES && mkdir $TMP_FLASHABLES
@@ -273,7 +264,7 @@ __make_flashable()
 	cp -ax $DIR_FLASHABLES/$KERNEL_SOURCE/* $TMP_FLASHABLES/kernel/
 
 	[ -f "$TMP_FLASHABLES/kernel/config.sh" ] ||
-	terminate ENOENT "$TMP_FLASHABLES/kernel"
+	terminate 3 "$TMP_FLASHABLES/kernel"
 
 	# Move freshly generated kernel image to the temporary directory.
 	mv -f $DIR_KERNELS/$KERNEL_SOURCE/arch/$ARCH/boot/$KERNEL_TYPE \
@@ -285,7 +276,7 @@ __make_flashable()
 	# Try to create a zipped archive with all the data collected in
 	# temporary directory. Terminate early in case of a failure.
 	cd $TMP_FLASHABLES && zip -r ${KERNEL_SOURCE}-$DATE.zip .
-	[ "$?" -eq "0" ] && cd $DIR_SOURCE || terminate EIO
+	[ "$?" -eq "0" ] && cd $DIR_SOURCE || terminate 7
 
 	# Try to sign the newly created flashable archive with the keys created
 	# by OpenSSL software. If the keys are absent, nothing will really
@@ -310,7 +301,7 @@ __make_flashable()
 
 	# Ensure all the above has been made successfully.
 	[ -s "$DIR_OUTPUTS/$KERNEL_SOURCE/${KERNEL_SOURCE}-$DATE.zip" ] ||
-	terminate ENFLSH
+	terminate 6
 
 	print "${COLOR_GREEN}- ${KERNEL_SOURCE}-$DATE.zip was successfully created!"
 }
@@ -318,7 +309,7 @@ __make_flashable()
 make_kernel()
 {
 	# This function expects configuration to be loaded.
-	(config_loaded) || terminate ENLOAD "Bake configuration"
+	(config_loaded) || terminate 4 "Bake configuration"
 
 	# Get current time in Seconds-Nanoseconds format.
 	STIME=$(date +"%s.%N")
@@ -344,17 +335,17 @@ make_kernel()
 print "${COLOR_CYAN}- Starting Bake v$BREAKFAST_VERSION..."
 
 # Ensure all the critical directories are created and non-empty.
-for DIR in $DIR_CONFIGS \
-	   $DIR_KERNELS \
-	   $DIR_FLASHABLES \
-	   $DIR_TOOLCHAINS \
+for DIR in $DIR_CONFIGS					\
+	   $DIR_KERNELS					\
+	   $DIR_FLASHABLES				\
+	   $DIR_TOOLCHAINS				\
 	   $DIR_OUTPUTS; do
-	[ -s "$DIR" ] || terminate EISDMG "$DIR"
+	[ -s "$DIR" ] || terminate 1 "$DIR"
 done
 
 # Initialize the script immediately if it was not called in a Bash context.
-if [ ! "$0" == "bash" ]; then
-	[ ! -z ${1+x} ] || terminate EINVAL
+if [ "$0" != "bash" ]; then
+	[ ! -z $1 ] || terminate 2
 
 	load_config $1
 	make_kernel
